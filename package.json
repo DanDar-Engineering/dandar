@@ -1,0 +1,30 @@
+{
+  "name": "dandar",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev:api": "pnpm --filter dandar_api dev",
+    "dev:ui": "pnpm run codegen && pnpm --filter dandar_ui dev",
+    "codegen": "pnpm --filter dandar_api schema:print && pnpm --filter dandar_ui codegen",
+    "build": "pnpm run codegen && pnpm --filter dandar_api build && pnpm --filter dandar_ui build",
+    "check": "pnpm run codegen && pnpm --filter dandar_api check && pnpm --filter dandar_ui check",
+    "lint": "oxlint",
+    "fmt": "oxfmt"
+  },
+  "devDependencies": {
+    "oxfmt": "^0.71.0",
+    "oxlint": "^1.86.0"
+  },
+  "packageManager": "pnpm@9.12.3",
+  "pnpm": {
+    "overrides": {
+      "react": "18.3.1",
+      "react-dom": "18.3.1",
+      "@sentry/node": "10.76.2",
+      "@opentelemetry/api": "1.9.1",
+      "@opentelemetry/instrumentation": "0.220.0",
+      "@opentelemetry/sdk-trace-base": "2.12.0"
+    }
+  }
+}

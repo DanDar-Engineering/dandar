@@ -1,0 +1,25 @@
+{
+  "name": "dandar_api",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "tsx watch --env-file-if-exists=../.env src/main.ts",
+    "build": "tsc -p tsconfig.build.json",
+    "start": "node --env-file-if-exists=../.env dist/main.js",
+    "check": "tsc --noEmit",
+    "schema:print": "tsx src/print-schema.ts"
+  },
+  "dependencies": {
+    "erxes-api-shared": "npm:@erxes/api-shared@3.3.4",
+    "graphql": "^16.14.2",
+    "graphql-tag": "^2.12.7",
+    "mongoose": "^8.10.0",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@apollo/subgraph": "^2.15.1",
+    "@types/node": "^22.20.4",
+    "tsx": "^4.23.15",
+    "typescript": "^5.9.3"
+  }
+}

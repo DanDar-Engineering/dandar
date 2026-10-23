@@ -1,0 +1,20 @@
+{
+  "name": "dandar",
+  "title": "DanDar",
+  "description": "DanDar EdTech plugin for erxes, powered by Gemma 4",
+  "version": "0.1.0",
+  "api": {
+    "framework": "platform",
+    "runtime": "node",
+    "port": 3399,
+    "graphql": "/graphql",
+    "health": "/health"
+  },
+  "ui": {
+    "framework": "react",
+    "port": 3099,
+    "name": "dandar",
+    "remote": "dandar_ui",
+    "path": "dandar"
+  }
+}
