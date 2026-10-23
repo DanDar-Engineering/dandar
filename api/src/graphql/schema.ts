@@ -8,7 +8,7 @@ import {
   askGemma,
   getAiStatus,
 } from "../modules/ai/gemma.ts";
-import { SAMPLE_READ } from "../permissions.ts";
+import { SAMPLE_READ, SAMPLE_WRITE } from "../permissions.ts";
 
 // Every type and operation is prefixed with the plugin name: the gateway
 // composes all plugins into one supergraph, so names must be unique across it.
@@ -26,6 +26,8 @@ export const typeDefs = gql`
   type DandarSample {
     _id: String!
     label: String!
+    "erxes contact (core Customer) _id; the UI resolves it with ui-modules"
+    customerId: String
     createdAt: String
   }
 
@@ -48,9 +50,28 @@ export const typeDefs = gql`
   }
 
   type Mutation {
+    dandarSampleAdd(label: String!, customerId: String): DandarSample!
     dandarAsk(prompt: String!): DandarAnswer!
   }
 `;
+
+const LABEL_MAX_LENGTH = 200;
+// erxes record ids are short url-safe strings
+const RECORD_ID = /^[A-Za-z0-9_-]{1,64}$/;
+
+const toSampleOutput = (sample: { createdAt?: Date }) => ({
+  ...sample,
+  createdAt: sample.createdAt?.toISOString?.() ?? null,
+});
+
+const requireTenantUser = ({ user, subdomain }: Context) => {
+  if (!user?._id) {
+    throw new GraphQLError("Login required", { extensions: { code: "UNAUTHENTICATED" } });
+  }
+  if (!subdomain) {
+    throw new GraphQLError("Tenant required", { extensions: { code: "FORBIDDEN" } });
+  }
+};
 
 export const resolvers = {
   Query: {
@@ -64,15 +85,10 @@ export const resolvers = {
     dandarSamples: async (
       _parent: unknown,
       { limit = 20, offset = 0 }: { limit?: number; offset?: number },
-      { models, user, subdomain, checkPermission }: Context,
+      context: Context,
     ) => {
-      if (!user?._id) {
-        throw new GraphQLError("Login required", { extensions: { code: "UNAUTHENTICATED" } });
-      }
-      if (!subdomain) {
-        throw new GraphQLError("Tenant required", { extensions: { code: "FORBIDDEN" } });
-      }
-      await checkPermission(SAMPLE_READ);
+      requireTenantUser(context);
+      await context.checkPermission(SAMPLE_READ);
       if (
         !Number.isInteger(limit) ||
         limit < 1 ||
@@ -85,14 +101,34 @@ export const resolvers = {
           extensions: { code: "BAD_USER_INPUT" },
         });
       }
-      return (await models.Samples.list({ limit, offset })).map((sample) => ({
-        ...sample,
-        createdAt: sample.createdAt?.toISOString?.() ?? null,
-      }));
+      return (await context.models.Samples.list({ limit, offset })).map(toSampleOutput);
     },
     dandarAiStatus: () => getAiStatus(),
   },
   Mutation: {
+    dandarSampleAdd: async (
+      _parent: unknown,
+      { label, customerId }: { label: string; customerId?: string | null },
+      context: Context,
+    ) => {
+      requireTenantUser(context);
+      await context.checkPermission(SAMPLE_WRITE);
+      const name = label.trim();
+      if (!name || name.length > LABEL_MAX_LENGTH) {
+        throw new GraphQLError(`Label must be 1–${LABEL_MAX_LENGTH} characters`, {
+          extensions: { code: "BAD_USER_INPUT" },
+        });
+      }
+      if (customerId && !RECORD_ID.test(customerId)) {
+        throw new GraphQLError("Invalid customerId", { extensions: { code: "BAD_USER_INPUT" } });
+      }
+      return toSampleOutput(
+        await context.models.Samples.createSample({
+          label: name,
+          customerId: customerId || undefined,
+        }),
+      );
+    },
     dandarAsk: async (_parent: unknown, { prompt }: { prompt: string }, { user }: Context) => {
       if (!user?._id) {
         throw new GraphQLError("Login required", { extensions: { code: "UNAUTHENTICATED" } });

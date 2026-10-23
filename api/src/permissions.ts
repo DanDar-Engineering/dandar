@@ -3,6 +3,7 @@ import { manifest } from "./config.ts";
 
 // Action names are global across the platform, not local to this plugin.
 export const SAMPLE_READ = "dandarSamplesRead";
+export const SAMPLE_WRITE = "dandarSamplesWrite";
 
 export const permissions: IPermissionConfig = {
   plugin: manifest.name,
@@ -20,6 +21,11 @@ export const permissions: IPermissionConfig = {
           name: SAMPLE_READ,
           title: "Read sample records",
           description: `View ${manifest.title} sample records`,
+        },
+        {
+          name: SAMPLE_WRITE,
+          title: "Create sample records",
+          description: `Create ${manifest.title} sample records`,
         },
       ],
     },

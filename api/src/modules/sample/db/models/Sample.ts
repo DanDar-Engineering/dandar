@@ -4,6 +4,7 @@ import { type ISampleDocument, sampleSchema } from "../definitions/sample.ts";
 
 export interface ISampleModel extends Model<ISampleDocument> {
   list(page: { limit: number; offset: number }): Promise<ISampleDocument[]>;
+  createSample(doc: { label: string; customerId?: string }): Promise<ISampleDocument>;
 }
 
 // Model statics live on the schema class, matching the monorepo's
@@ -16,6 +17,12 @@ export const loadSampleClass = (models: IModels) => {
         .skip(offset)
         .limit(limit)
         .lean();
+    }
+
+    public static async createSample(doc: { label: string; customerId?: string }) {
+      const sample = await models.Samples.create(doc);
+
+      return sample.toObject();
     }
   }
 

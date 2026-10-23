@@ -7,7 +7,7 @@ import {
   IconLayoutDashboard,
   IconSandbox,
   IconSettings,
-  IconSparkles,
+  IconUsers,
 } from "@tabler/icons-react";
 // Root imports on purpose: core-ui shares `erxes-ui`/`ui-modules` as Module
 // Federation singletons keyed on the bare specifier, so deep imports would
@@ -17,7 +17,6 @@ import { PageHeader } from "ui-modules";
 import { Link } from "react-router";
 import manifest from "../../../erxes.json" with { type: "json" };
 import { STATUS_QUERY } from "../graphql";
-import { AskGemma } from "../modules/ai/AskGemma";
 import { Samples } from "../Samples";
 
 const { path } = manifest.ui;
@@ -141,11 +140,11 @@ const STEPS = [
     code: "ui/src/pages/IndexPage.tsx",
   },
   {
-    icon: IconSparkles,
-    title: "Shape the AI",
+    icon: IconUsers,
+    title: "Use erxes data",
     description:
-      "Change the tutor instructions, or switch AI_PROVIDER to Ollama or DigitalOcean in .env.",
-    code: "api/src/modules/ai/gemma.ts",
+      "Link records to erxes contacts with SelectCustomer and CustomersInline from ui-modules.",
+    code: "ui/src/Samples.tsx",
   },
 ];
 
@@ -218,7 +217,6 @@ export const IndexPage = () => (
             <ConnectionCard />
           </div>
         </section>
-        <AskGemma />
         <Samples />
         <div className="dandar:grid dandar:gap-4 dandar:md:grid-cols-3">
           {STEPS.map((step) => (

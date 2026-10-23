@@ -3,11 +3,21 @@
 DanDar EdTech plugin for erxes, powered by Gemma 4
 
 **New machine?** Follow [SETUP.md](SETUP.md) (Windows + WSL2, in Mongolian).
+**Building a feature?** [BUILD.md](BUILD.md) walks through adding a module and
+using erxes data (contacts, members, products) from this plugin.
 Idea shortlist for the team: [docs/IDEAS.md](docs/IDEAS.md).
 
-## Gemma 4
+## Example module
 
-The overview page has an "Ask Gemma 4" card (`ui/src/modules/ai/AskGemma.tsx`)
+`Samples` (`api/src/modules/sample`, `ui/src/Samples.tsx`) is a complete
+feature to copy: a plugin-owned Mongo model, `dandarSamples` /
+`dandarSampleAdd` with permission checks, and a form that links each record to
+an erxes contact through `SelectCustomer` and `CustomersInline` from
+`ui-modules`.
+
+## Gemma 4 (optional)
+
+The settings page has an "Ask Gemma 4" card (`ui/src/modules/ai/AskGemma.tsx`)
 backed by `api/src/modules/ai/gemma.ts`. GraphQL: `dandarAiStatus` and the
 `dandarAsk(prompt)` mutation. Configure it in `.env`, then restart
 `pnpm run dev:api`:

@@ -84,7 +84,9 @@ bash scripts/setup-plugin.sh
 хүлээдэг. Анх удаа 2-р terminal Apollo Router татна, нэг минут орчим болно.
 
 Browser дээр <http://localhost:3001> нээнэ. Анх удаа owner account үүсгэнэ. Зүүн цэсэнд
-**DanDar** гарч ирэх ба "Ask Gemma 4" картаас асуулт асууж болно.
+**DanDar** гарч ирнэ. "Records" картад бичлэг нэмж, erxes-ийн харилцагчтай холбож туршаарай.
+Харилцагч сонгохын тулд эхлээд erxes-ийн Contacts хэсэгт нэг харилцагч нэмнэ. Дараа нь
+[BUILD.md](BUILD.md)-г дагаж өөрсдийн feature-ээ нэмнэ.
 
 Шалгах:
 

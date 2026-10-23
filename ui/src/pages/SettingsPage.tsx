@@ -3,6 +3,7 @@ import { Breadcrumb, Button, Card, Empty, Separator } from "erxes-ui";
 import { PageHeader } from "ui-modules";
 import { Link } from "react-router";
 import manifest from "../../../erxes.json" with { type: "json" };
+import { AskGemma } from "../modules/ai/AskGemma";
 
 const { path } = manifest.ui;
 
@@ -91,6 +92,8 @@ export const SettingsPage = () => (
             </Empty>
           </Card.Content>
         </Card>
+        {/* Optional: works once GEMINI_API_KEY (or AI_BASE_URL) is set in .env. */}
+        <AskGemma />
       </div>
     </div>
   </div>

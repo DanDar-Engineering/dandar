@@ -80,7 +80,22 @@ See `docs/erxes-integration.md`. In short:
   `dev:ui` run `codegen` first. Run `pnpm run codegen` after changing a
   document or the schema.
 
-## Gemma 4 (AI)
+## Example module and erxes data
+
+- `Samples` is the reference feature: `dandar_samples` collection,
+  `dandarSamples` (read, `dandarSamplesRead`) and `dandarSampleAdd` (create,
+  `dandarSamplesWrite`). Resolvers share `requireTenantUser` and validate input
+  (label 1–200 chars; `customerId` must match an erxes record id).
+- Records store only the `_id` of erxes data (`customerId` → core Customer).
+  The UI resolves it with `ui-modules` (`SelectCustomer`, `CustomersInline`);
+  the API reads core through `sendTRPCMessage({ pluginName: "core", ... })`,
+  never by querying core collections.
+- `BUILD.md` is the step-by-step guide for adding a module; keep it in sync
+  when the sample's structure changes.
+
+## Gemma 4 (AI, optional)
+
+- The "Ask Gemma 4" card lives on the settings page, not the overview.
 
 - `api/src/modules/ai/gemma.ts` owns every model call (`askGemma`,
   `getAiStatus`); resolvers never call a provider directly. `AI_PROVIDER`
@@ -97,7 +112,7 @@ See `docs/erxes-integration.md`. In short:
 
 ## Machine setup
 
-`SETUP.md` is the Windows + WSL2 setup guide. `scripts/setup-wsl.sh` (sudo),
+`SETUP.md` is the Windows + WSL2 setup guide; `BUILD.md` covers adding features. `scripts/setup-wsl.sh` (sudo),
 `scripts/setup-erxes.sh` and `scripts/setup-plugin.sh` automate it;
 `scripts/erxes.env.example` is the erxes `.env` template. Keep secrets out of
 the repository: `.env` files are gitignored and the scripts ask for them.
