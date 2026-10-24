@@ -9,6 +9,7 @@ import { RECORD_ID, assertPage, requireTenantUser, toAiError } from "./guards.ts
 import { scanResolvers, scanTypeDefs } from "./scan.ts";
 import { studyResolvers, studyTypeDefs } from "./study.ts";
 import { voiceResolvers, voiceTypeDefs } from "./voice.ts";
+import { voicePlanMutations, voicePlanTypeDefs } from "../modules/planner/voicePlan.ts";
 
 // Every type and operation is prefixed with the plugin name: the gateway
 // composes all plugins into one supergraph, so names must be unique across it.
@@ -61,6 +62,8 @@ export const typeDefs = gql`
   ${studyTypeDefs}
 
   ${voiceTypeDefs}
+
+  ${voicePlanTypeDefs}
 `;
 
 const LABEL_MAX_LENGTH = 200;
@@ -100,6 +103,7 @@ export const resolvers = {
     ...scanResolvers.Mutation,
     ...studyResolvers.Mutation,
     ...voiceResolvers.Mutation,
+    ...voicePlanMutations,
     dandarSampleAdd: async (
       _parent: unknown,
       { label, customerId }: { label: string; customerId?: string | null },
