@@ -119,6 +119,39 @@ See `docs/erxes-integration.md`. In short:
 - `api/src/modules/scan/constants.ts` must not import mongoose or
   erxes-api-shared: `print-schema` loads it and would otherwise never exit.
 
+## Study cards (Anki-style review, exams, Gemma 4 card drafts)
+
+- Route `/dandar/study?tab=review|add|exams|library`
+  (`ui/src/pages/StudyPage.tsx`, `ui/src/modules/study/`). The tab and, for
+  `tab=add`, the `scan` id live in the URL: "Миний материал" links to
+  `/dandar/study?tab=add&scan=<id>` and `AddCards` starts a draft from it.
+- Scheduling is pure code, no LLM: `api/src/modules/study/logic/`
+  (`forgettingCurve.ts` `R = exp(-t/S)`, `scheduler.ts` four grades
+  `forgot|unsure|know|easy` that update stability `S` and the next due time,
+  `mastery.ts` weak decks, `exam.ts` `applyExam`: as an exam date nears,
+  intervals shrink so each card gets `TARGET_ROUNDS` (4) reviews, and nothing
+  is due later than the day before the exam). `pnpm --filter dandar_api test`
+  runs the unit tests (`node --test`, type stripping: no enums or parameter
+  properties in `logic/` and `cardGen.ts`).
+- Gemma only writes content: `dandarCardsDraft` (notes, a photo, or a saved
+  scan) and `dandarCardHelp` (hint / explain / mnemonic). Prompts and the
+  JSON parser are in `api/src/modules/study/cardGen.ts`; calls go through
+  `askGemma` with its `image` option. The material is passed as data and the
+  prompt says to ignore instructions inside it.
+- Nothing is stored before the student checks it: `dandarCardsDraft` returns
+  cards, `DraftEditor` lets the student edit/drop them, `dandarCardsSave`
+  stores them (and, when the material states an exam date, schedules the
+  deck). Limits are mirrored in `AddCards.tsx` / `DraftEditor.tsx`.
+- From a scan: `scanId` reuses the scan's stored `text` (no second photo
+  upload) and is accepted only for the signed-in student's own scans.
+  Photos taken in the card form go through the same `prepareImage` as scans
+  (JPEG ≤1600 px, `MAX_IMAGE_CHARS`) and `assertImage` from `graphql/scan.ts`.
+- Data: `dandar_study_cards` (`userId`, `topicId` = deck, `front`, `back`,
+  `scanId`, stability, lapses, reviews, `lastReviewedAt`, `dueAt`) and
+  `dandar_study_exams` (`userId`, `deck`, `examAt`, unique per user and deck).
+  Every query filters by `userId`; permissions `dandarStudyRead` /
+  `dandarStudyWrite`.
+
 ## Gemma 4 (AI, optional)
 
 - The "Ask Gemma 4" card lives on the settings page, not the overview.

@@ -1,8 +1,10 @@
 import { useMutation, useQuery } from "@apollo/client";
 import { useState } from "react";
-import { IconSend } from "@tabler/icons-react";
+import { IconCards, IconSend } from "@tabler/icons-react";
 import { Button, Card, Empty, toast } from "erxes-ui";
 import { MembersInline, SelectMember } from "ui-modules";
+import { Link } from "react-router";
+import manifest from "../../../../erxes.json" with { type: "json" };
 import { SCAN_SEND_MUTATION, SCANS_QUERY } from "./graphql";
 import { ScanBadges } from "./ScanBadges";
 import { ScanDetailSheet } from "./ScanDetailSheet";
@@ -89,6 +91,12 @@ export const MyScans = () => {
                   </div>
                   <div className="dandar:flex dandar:items-center dandar:gap-2">
                     <ScanBadges kind={scan.kind} status={scan.status} />
+                    <Button variant="outline" size="sm" asChild>
+                      <Link to={`/${manifest.ui.path}/study?tab=add&scan=${scan._id}`}>
+                        <IconCards />
+                        Карт үүсгэх
+                      </Link>
+                    </Button>
                     <ScanDetailSheet scanId={scan._id} title={scan.title} />
                   </div>
                 </div>
