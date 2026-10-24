@@ -116,10 +116,16 @@ See `docs/erxes-integration.md`. In short:
 `scripts/setup-erxes.sh` and `scripts/setup-plugin.sh` automate it;
 `scripts/erxes.env.example` is the erxes `.env` template. Keep secrets out of
 the repository: `.env` files are gitignored and the scripts ask for them.
+`scripts/set-mongo-url.sh` writes `MONGO_URL` into both `.env` files from the
+Atlas driver string (asks for `<db_password>` separately, adds the `erxes`
+database; `--check` only tests it); `setup-erxes.sh` calls it and skips the
+Cypress/Puppeteer browser downloads. `scripts/wsl-dns.sh` (sudo, opt-in) makes
+WSL DNS survive lossy wifi; `setup-wsl.sh` suggests it when lookups fail.
 
 `scripts/start-all.sh` checks MongoDB reachability, then starts plugin API →
 erxes backend → core-ui → plugin UI → VS Code tunnel detached, skipping
-anything already listening (logs and pid files in `~/logs`);
+anything already listening (logs and pid files in `~/logs`) and restarting the
+backend once if the gateway crashes while Apollo Router starts;
 `scripts/stop-all.sh` kills those process groups and any orphaned Apollo
 Router. `REMOTE.md` covers serving erxes from a home PC to a laptop through a
 VS Code Remote Tunnel and sharing it with the team through Live Share.

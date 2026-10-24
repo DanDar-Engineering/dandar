@@ -10,6 +10,13 @@ fi
 
 export DEBIAN_FRONTEND=noninteractive
 
+if ! timeout 15 getent ahosts deb.nodesource.com > /dev/null; then
+  echo "DNS lookups are failing or slow. If the steps below fail, run: sudo bash scripts/wsl-dns.sh" >&2
+fi
+
+# Venue wifi drops packets: let every apt download (NodeSource's too) retry.
+echo 'Acquire::Retries "5";' > /etc/apt/apt.conf.d/80-retries
+
 apt-get update -y
 apt-get install -y git gh curl ca-certificates build-essential python3 redis-server
 
@@ -19,7 +26,11 @@ redis-cli ping
 
 # Node 22 from NodeSource (Ubuntu 24.04 ships Node 18, which erxes does not support)
 if ! node -v 2>/dev/null | grep -q '^v22\.'; then
-  curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
+  # Downloaded first: a retried download piped into bash could run twice.
+  curl -fsSL --retry 5 --retry-all-errors --retry-delay 5 -o /tmp/nodesource_setup.sh \
+    https://deb.nodesource.com/setup_22.x
+  bash /tmp/nodesource_setup.sh
+  rm -f /tmp/nodesource_setup.sh
   apt-get install -y nodejs
 fi
 corepack enable

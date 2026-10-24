@@ -7,6 +7,9 @@ set -euo pipefail
 PLUGIN_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 ERXES_DIR="${ERXES_DIR:-$HOME/erxes}"
 export COREPACK_ENABLE_DOWNLOAD_PROMPT=0
+# Venue wifi drops packets: retry registry downloads instead of failing.
+export npm_config_fetch_retries=6 npm_config_fetch_retry_mintimeout=20000 \
+  npm_config_fetch_retry_maxtimeout=120000 npm_config_fetch_timeout=120000
 
 cd "$PLUGIN_DIR"
 
