@@ -142,15 +142,41 @@ See `docs/erxes-integration.md`. In short:
   cards, `DraftEditor` lets the student edit/drop them, `dandarCardsSave`
   stores them (and, when the material states an exam date, schedules the
   deck). Limits are mirrored in `AddCards.tsx` / `DraftEditor.tsx`.
-- From a scan: `scanId` reuses the scan's stored `text` (no second photo
-  upload) and is accepted only for the signed-in student's own scans.
+- From scans: `scanIds` (up to 5, `MAX_DRAFT_SCANS`) reuse the scans' stored
+  `text` (no second photo upload) and are accepted only for the signed-in
+  student's own scans. Cards keep `scanIds`; `dandarScanCardCounts` tells
+  `ScanPicker` which earlier scans already became cards.
   Photos taken in the card form go through the same `prepareImage` as scans
   (JPEG ≤1600 px, `MAX_IMAGE_CHARS`) and `assertImage` from `graphql/scan.ts`.
 - Data: `dandar_study_cards` (`userId`, `topicId` = deck, `front`, `back`,
-  `scanId`, stability, lapses, reviews, `lastReviewedAt`, `dueAt`) and
-  `dandar_study_exams` (`userId`, `deck`, `examAt`, unique per user and deck).
+  `scanIds`, stability, lapses, reviews, `lastReviewedAt`, `dueAt`),
+  `dandar_study_exams` (`userId`, `deck`, `examAt`, unique per user and deck)
+  and `dandar_study_settings` (reminder toggles, hour, quiet hours).
   Every query filters by `userId`; permissions `dandarStudyRead` /
   `dandarStudyWrite`.
+
+- Review keys: Space/Enter shows the answer, 1–4 grade, S skips (skipping
+  only reorders the session; the schedule stays).
+
+## Notifications
+
+- `api/src/modules/notify/notify.ts` `notifyUsers` sends a `system`
+  notification to the erxes bell through `sendNotification` (tRPC to core).
+  It imports `erxes-api-shared` lazily because `graphql/*.ts` use it and
+  `print-schema` must not open the platform's Redis. A failed notification
+  is logged and never fails the action.
+- Triggers: a scan sent to a teacher (`dandarScanSave` with a teacher,
+  `dandarScanSendToTeacher`) notifies the teacher; `dandarScanReview`
+  notifies the student.
+- Study reminders: `api/src/modules/study/reminders.ts`, started from
+  `onServerInit`, ticks every 10 minutes over tenants recorded in the Redis
+  set `dandar:study:tenants` (`rememberTenant` in `apolloServerContext`).
+  `logic/reminders.ts` `planReminders` decides: a daily review reminder when
+  cards are due and exam reminders 7/3/1 days before, only at the student's
+  `reminderHour` and never inside quiet hours. A Redis `SET NX` key per
+  reminder makes it go out once across replicas. Env: `STUDY_REMINDERS=off`
+  disables it, `STUDY_TZ_OFFSET_MINUTES` (default 480, Ulaanbaatar) sets the
+  students' local time.
 
 ## Gemma 4 (AI, optional)
 

@@ -4,6 +4,7 @@ import type { Context } from "../connectionResolvers.ts";
 import type { ScanKind } from "../modules/scan/constants.ts";
 import type { ScanSummaryRecord } from "../modules/scan/db/models/Scan.ts";
 import { EmptyScanError, readScan } from "../modules/scan/readScan.ts";
+import { notifyUsers } from "../modules/notify/notify.ts";
 import { SCAN_REVIEW, SCAN_SUBMIT } from "../permissions.ts";
 import { RECORD_ID, assertPage, badInput, requireTenantUser, toAiError } from "./guards.ts";
 
@@ -149,6 +150,14 @@ const notFound = () =>
 
 type PageArgs = { limit?: number; offset?: number };
 
+const notifyTeacher = (subdomain: string, teacherId: string, title: string) =>
+  notifyUsers(subdomain, [teacherId], {
+    title: "Шинэ шалгалтын материал",
+    message: `Сурагч «${title}» материал илгээлээ.`,
+    contentType: "scan.sent",
+    path: "/dandar/scans",
+  });
+
 export const scanResolvers = {
   Query: {
     dandarScans: async (_parent: unknown, { limit = 20, offset = 0 }: PageArgs, context: Context) => {
@@ -225,25 +234,28 @@ export const scanResolvers = {
       const teacherId = isExam ? args.teacherId || undefined : undefined;
       const status = isExam ? (teacherId ? "sent" : "awaiting_teacher") : "processed";
 
-      return toScanOutput(
-        await context.models.Scans.createScan({
-          studentId: userId,
-          teacherId,
-          fileName: args.fileName.trim().slice(0, FILE_NAME_MAX_LENGTH) || "scan",
-          mimeType: args.mimeType,
-          imageData: args.imageData,
-          text,
-          kind: args.kind,
-          title,
-          subject: optionalText(args.subject, SUBJECT_MAX_LENGTH, "Subject"),
-          summary:
-            args.kind === "note"
-              ? optionalText(args.summary, SUMMARY_MAX_LENGTH, "Summary")
-              : undefined,
-          status,
-          sentAt: status === "sent" ? new Date() : undefined,
-        }),
-      );
+      const saved = await context.models.Scans.createScan({
+        studentId: userId,
+        teacherId,
+        fileName: args.fileName.trim().slice(0, FILE_NAME_MAX_LENGTH) || "scan",
+        mimeType: args.mimeType,
+        imageData: args.imageData,
+        text,
+        kind: args.kind,
+        title,
+        subject: optionalText(args.subject, SUBJECT_MAX_LENGTH, "Subject"),
+        summary:
+          args.kind === "note"
+            ? optionalText(args.summary, SUMMARY_MAX_LENGTH, "Summary")
+            : undefined,
+        status,
+        sentAt: status === "sent" ? new Date() : undefined,
+      });
+      if (saved.status === "sent" && saved.teacherId) {
+        void notifyTeacher(context.subdomain, saved.teacherId, saved.title);
+      }
+
+      return toScanOutput(saved);
     },
     dandarScanSendToTeacher: async (
       _parent: unknown,
@@ -259,6 +271,7 @@ export const scanResolvers = {
       if (!scan) {
         throw notFound();
       }
+      void notifyTeacher(context.subdomain, teacherId, scan.title);
 
       return toScanOutput(scan);
     },
@@ -280,6 +293,14 @@ export const scanResolvers = {
       if (!scan) {
         throw notFound();
       }
+      void notifyUsers(context.subdomain, [scan.studentId], {
+        title: "Багш хариулсан",
+        message: `«${scan.title}» материалд багш хариу бичлээ.`,
+        contentType: "scan.reviewed",
+        type: "success",
+        path: "/dandar/scans",
+        metadata: { scanId: scan._id },
+      });
 
       return toScanOutput(scan);
     },

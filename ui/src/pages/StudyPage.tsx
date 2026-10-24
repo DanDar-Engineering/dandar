@@ -7,9 +7,10 @@ import { AddCards } from "../modules/study/AddCards";
 import { Exams } from "../modules/study/Exams";
 import { Library } from "../modules/study/Library";
 import { ReviewPanel } from "../modules/study/ReviewPanel";
+import { StudySettings } from "../modules/study/StudySettings";
 
 const { path } = manifest.ui;
-const TABS = ["review", "add", "exams", "library"] as const;
+const TABS = ["review", "add", "exams", "library", "settings"] as const;
 type StudyTab = (typeof TABS)[number];
 
 // `?tab=add&scan=<id>` is how "Миний материал" hands a scan over to card
@@ -55,6 +56,7 @@ export const StudyPage = () => {
               <Tabs.Trigger value="add">Карт нэмэх</Tabs.Trigger>
               <Tabs.Trigger value="exams">Шалгалт</Tabs.Trigger>
               <Tabs.Trigger value="library">Багц</Tabs.Trigger>
+              <Tabs.Trigger value="settings">Тохиргоо</Tabs.Trigger>
             </Tabs.List>
             <Tabs.Content value="review">
               <ReviewPanel />
@@ -67,6 +69,9 @@ export const StudyPage = () => {
             </Tabs.Content>
             <Tabs.Content value="library">
               <Library />
+            </Tabs.Content>
+            <Tabs.Content value="settings">
+              <StudySettings />
             </Tabs.Content>
           </Tabs>
         </div>

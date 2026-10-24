@@ -29,6 +29,9 @@ import {
   retrievabilityOf,
   review,
   topicMastery,
+  DEFAULT_REMINDER_SETTINGS,
+  type ReminderSettings,
+  isQuietHour,
 } from "../modules/study/logic/learning.ts";
 import { STUDY_READ, STUDY_WRITE } from "../permissions.ts";
 import { RECORD_ID, assertPage, badInput, requireTenantUser, toAiError } from "./guards.ts";
@@ -80,8 +83,8 @@ export const studyTypeDefs = gql`
     deck: String!
     front: String!
     back: String!
-    "dandar_scans _id the card was generated from"
-    scanId: String
+    "dandar_scans _ids the card was generated from"
+    scanIds: [String!]!
     reviews: Int!
     stability: Float!
     "Estimated chance the student still remembers it, 0–100"
@@ -144,6 +147,30 @@ export const studyTypeDefs = gql`
     back: String!
   }
 
+  type DandarStudySettings {
+    reviewReminder: Boolean!
+    "Local hour 0–23 the daily review and exam reminders go out"
+    reminderHour: Int!
+    examAlerts: Boolean!
+    "No notifications from quietStart until quietEnd (local hours)"
+    quietStart: Int!
+    quietEnd: Int!
+  }
+
+  input DandarStudySettingsInput {
+    reviewReminder: Boolean!
+    reminderHour: Int!
+    examAlerts: Boolean!
+    quietStart: Int!
+    quietEnd: Int!
+  }
+
+  "How many of the student's cards came from one scan"
+  type DandarScanCardCount {
+    scanId: String!
+    cards: Int!
+  }
+
   extend type Query {
     dandarStudyCounts: DandarStudyCounts!
     "Cards due now, the most forgotten first"
@@ -151,16 +178,18 @@ export const studyTypeDefs = gql`
     dandarStudyCards(deck: String, limit: Int = 20, offset: Int = 0): [DandarStudyCard!]!
     dandarDeckMastery: [DandarDeckMastery!]!
     dandarExams: [DandarExam!]!
+    dandarStudySettings: DandarStudySettings!
+    dandarScanCardCounts: [DandarScanCardCount!]!
   }
 
   extend type Mutation {
     dandarCardAdd(deck: String!, front: String!, back: String!): DandarStudyCard!
     dandarCardDelete(_id: String!): Boolean!
     dandarCardReview(_id: String!, grade: DandarCardGrade!): DandarStudyCard!
-    "Gemma 4 proposes cards from notes, a photo or a saved scan; nothing is stored"
+    "Gemma 4 proposes cards from notes, a photo or up to 5 saved scans; nothing is stored"
     dandarCardsDraft(
       notes: String
-      scanId: String
+      scanIds: [String!]
       mimeType: String
       imageData: String
       options: DandarCardOptionsInput
@@ -170,11 +199,12 @@ export const studyTypeDefs = gql`
       deck: String!
       cards: [DandarCardInput!]!
       examDate: String
-      scanId: String
+      scanIds: [String!]
     ): [DandarStudyCard!]!
     dandarExamSet(deck: String!, date: String!): DandarExam!
     dandarExamDelete(deck: String!): Boolean!
     dandarCardHelp(_id: String!, mode: DandarCardHelpMode!): String!
+    dandarStudySettingsSave(input: DandarStudySettingsInput!): DandarStudySettings!
   }
 `;
 
@@ -210,7 +240,7 @@ const toCardOutput = (card: IStudyCardDocument, now: number, exams?: Map<string,
     deck: card.topicId,
     front: card.front,
     back: card.back,
-    scanId: card.scanId ?? null,
+    scanIds: card.scanIds ?? [],
     reviews: card.reviews,
     stability: card.stability,
     retention: Math.round(retrievabilityOf(state, now) * 100),
@@ -296,6 +326,8 @@ const toCardOptions = (input: OptionsInput | null | undefined): CardOptions => {
   };
 };
 
+const MAX_DRAFT_SCANS = 5;
+
 // A student may generate cards only from material they uploaded themselves.
 const ownScan = async (context: Context, userId: string, scanId: string) => {
   assertRecordId(scanId, "scanId");
@@ -305,6 +337,23 @@ const ownScan = async (context: Context, userId: string, scanId: string) => {
   }
 
   return scan;
+};
+
+const ownScans = async (context: Context, userId: string, scanIds: string[] | null | undefined) => {
+  const ids = [...new Set(scanIds ?? [])];
+  if (ids.length > MAX_DRAFT_SCANS) {
+    throw badInput(`Pick at most ${MAX_DRAFT_SCANS} materials at a time`);
+  }
+
+  return Promise.all(ids.map((id) => ownScan(context, userId, id)));
+};
+
+const HOUR = (value: number, label: string) => {
+  if (!Number.isInteger(value) || value < 0 || value > 23) {
+    throw badInput(`${label} must be an hour 0–23`);
+  }
+
+  return value;
 };
 
 type PageArgs = { limit?: number; offset?: number };
@@ -379,6 +428,27 @@ export const studyResolvers = {
         weak: topic.weak,
       }));
     },
+    dandarStudySettings: async (_parent: unknown, _args: unknown, context: Context) => {
+      const userId = requireTenantUser(context);
+      await context.checkPermission(STUDY_READ);
+      const stored = await context.models.StudySettings.findOne({
+        userId,
+      }).lean<ReminderSettings>();
+
+      return stored ?? DEFAULT_REMINDER_SETTINGS;
+    },
+    dandarScanCardCounts: async (_parent: unknown, _args: unknown, context: Context) => {
+      const userId = requireTenantUser(context);
+      await context.checkPermission(STUDY_READ);
+      const rows = await context.models.StudyCards.aggregate<{ _id: string; cards: number }>([
+        { $match: { userId, "scanIds.0": { $exists: true } } },
+        { $unwind: "$scanIds" },
+        { $group: { _id: "$scanIds", cards: { $sum: 1 } } },
+        { $limit: 1000 },
+      ]);
+
+      return rows.map((row) => ({ scanId: row._id, cards: row.cards }));
+    },
     dandarExams: async (_parent: unknown, _args: unknown, context: Context) => {
       const userId = requireTenantUser(context);
       await context.checkPermission(STUDY_READ);
@@ -447,7 +517,7 @@ export const studyResolvers = {
       _parent: unknown,
       args: {
         notes?: string | null;
-        scanId?: string | null;
+        scanIds?: string[] | null;
         mimeType?: string | null;
         imageData?: string | null;
         options?: OptionsInput | null;
@@ -462,14 +532,14 @@ export const studyResolvers = {
       if (notes.length > NOTES_MAX_LENGTH) {
         throw badInput(`Notes must be at most ${NOTES_MAX_LENGTH} characters`);
       }
-      // A saved scan already holds Gemma's transcription, so its text is
-      // reused instead of sending the photo again.
-      let scanDeck = "";
-      if (args.scanId) {
-        const scan = await ownScan(context, userId, args.scanId);
-        notes = [notes, scan.text].filter(Boolean).join("\n\n").slice(0, NOTES_MAX_LENGTH);
-        scanDeck = scan.subject || scan.title;
-      }
+      // Saved scans already hold Gemma's transcription, so their text is
+      // reused instead of sending the photos again.
+      const scans = await ownScans(context, userId, args.scanIds);
+      notes = [notes, ...scans.map((scan) => `${scan.title}\n${scan.text}`)]
+        .filter(Boolean)
+        .join("\n\n")
+        .slice(0, NOTES_MAX_LENGTH);
+      const scanDeck = scans[0] ? scans[0].subject || scans[0].title : "";
       let image: { mimeType: string; data: string } | undefined;
       if (args.mimeType || args.imageData) {
         assertImage(args.mimeType ?? "", args.imageData ?? "");
@@ -499,7 +569,7 @@ export const studyResolvers = {
         deck: string;
         cards: { front: string; back: string }[];
         examDate?: string | null;
-        scanId?: string | null;
+        scanIds?: string[] | null;
       },
       context: Context,
     ) => {
@@ -513,7 +583,7 @@ export const studyResolvers = {
         front: cleanText(card.front, "Front"),
         back: cleanText(card.back, "Back"),
       }));
-      if (args.scanId) await ownScan(context, userId, args.scanId);
+      const scanIds = (await ownScans(context, userId, args.scanIds)).map((scan) => scan._id);
 
       const now = Date.now();
       if (args.examDate) {
@@ -533,7 +603,7 @@ export const studyResolvers = {
             userId,
             topicId: deck,
             ...card,
-            scanId: args.scanId || undefined,
+            scanIds,
             stability: state.stability,
             dueAt: new Date(state.dueAt),
           };
@@ -592,6 +662,31 @@ export const studyResolvers = {
         (await context.models.StudyExams.deleteOne({ userId, deck: cleanDeck(deck) }))
           .deletedCount === 1
       );
+    },
+    dandarStudySettingsSave: async (
+      _parent: unknown,
+      { input }: { input: ReminderSettings },
+      context: Context,
+    ) => {
+      const userId = requireTenantUser(context);
+      await context.checkPermission(STUDY_WRITE);
+      const settings: ReminderSettings = {
+        reviewReminder: input.reviewReminder,
+        reminderHour: HOUR(input.reminderHour, "Reminder hour"),
+        examAlerts: input.examAlerts,
+        quietStart: HOUR(input.quietStart, "Quiet start"),
+        quietEnd: HOUR(input.quietEnd, "Quiet end"),
+      };
+      if (isQuietHour(settings.reminderHour, settings.quietStart, settings.quietEnd)) {
+        throw badInput("The reminder hour falls inside the quiet hours");
+      }
+      await context.models.StudySettings.updateOne(
+        { userId },
+        { $set: settings },
+        { upsert: true },
+      );
+
+      return settings;
     },
     dandarCardHelp: async (
       _parent: unknown,

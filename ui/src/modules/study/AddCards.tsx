@@ -1,11 +1,11 @@
 import { useMutation, useQuery } from "@apollo/client";
 import { type ChangeEvent, useEffect, useRef, useState } from "react";
 import { IconPhoto, IconSparkles } from "@tabler/icons-react";
-import { Button, Card, Empty, Input, Label, Tabs, Textarea, cn, toast } from "erxes-ui";
+import { Button, Card, Input, Label, Tabs, Textarea, toast } from "erxes-ui";
 import type { DandarCardKind, DandarCardLang, DandarCardLevel } from "~/gql/graphql";
-import { SCANS_QUERY } from "../scan/graphql";
 import { ACCEPTED_IMAGE_TYPES, type PreparedImage, prepareImage } from "../scan/image";
 import { type Draft, DraftEditor } from "./DraftEditor";
+import { ScanPicker } from "./ScanPicker";
 import {
   CARDS_DRAFT_MUTATION,
   CARD_ADD_MUTATION,
@@ -203,7 +203,7 @@ const ManualForm = ({ decks }: { decks: string[] }) => {
   );
 };
 
-type DraftRequest = { notes?: string; scanId?: string; image?: PreparedImage };
+type DraftRequest = { notes?: string; scanIds?: string[]; image?: PreparedImage };
 
 export const AddCards = ({ initialScanId }: { initialScanId?: string }) => {
   const [source, setSource] = useState(initialScanId ? "scans" : "manual");
@@ -215,7 +215,6 @@ export const AddCards = ({ initialScanId }: { initialScanId?: string }) => {
   const [draft, setDraft] = useState<Draft | null>(null);
 
   const decks = useQuery(DECK_MASTERY_QUERY).data?.dandarDeckMastery.map((item) => item.deck) ?? [];
-  const scans = useQuery(SCANS_QUERY, { variables: { limit: 20, offset: 0 } });
 
   const [makeDraft, { loading: drafting, error: draftError }] = useMutation(CARDS_DRAFT_MUTATION, {
     onError: () => undefined, // rendered from the hook state below
@@ -225,7 +224,7 @@ export const AddCards = ({ initialScanId }: { initialScanId?: string }) => {
     const result = await makeDraft({
       variables: {
         notes: request.notes || null,
-        scanId: request.scanId || null,
+        scanIds: request.scanIds?.length ? request.scanIds : null,
         mimeType: request.image?.mimeType ?? null,
         imageData: request.image?.data ?? null,
         options: {
@@ -244,7 +243,7 @@ export const AddCards = ({ initialScanId }: { initialScanId?: string }) => {
         deck: data.deck,
         examDate: data.examDate ?? "",
         cards: data.cards.map((card) => ({ ...card, keep: true })),
-        scanId: request.scanId,
+        scanIds: request.scanIds ?? [],
       });
     }
   };
@@ -254,7 +253,7 @@ export const AddCards = ({ initialScanId }: { initialScanId?: string }) => {
   useEffect(() => {
     if (initialScanId && !started.current) {
       started.current = true;
-      void run({ scanId: initialScanId });
+      void run({ scanIds: [initialScanId] });
     }
     // run closes over the options on first render only on purpose
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -360,53 +359,7 @@ export const AddCards = ({ initialScanId }: { initialScanId?: string }) => {
       <Tabs.Content value="scans" className="dandar:flex dandar:flex-col dandar:gap-4">
         <OptionsForm options={options} onChange={setOptions} />
         {error}
-        <Card>
-          <Card.Header>
-            <Card.Title>Миний материал</Card.Title>
-            <Card.Description>
-              «Зураг уншуулах» хэсэгт хадгалсан материалын текстээс карт үүсгэнэ. Зургийг дахин
-              илгээхгүй.
-            </Card.Description>
-          </Card.Header>
-          <Card.Content>
-            {scans.loading ? (
-              <p role="status">Ачаалж байна…</p>
-            ) : scans.error ? (
-              <p role="alert">{scans.error.message}</p>
-            ) : (scans.data?.dandarScans ?? []).length === 0 ? (
-              <Empty>
-                <Empty.Header>
-                  <Empty.Title>Материал алга</Empty.Title>
-                  <Empty.Description>
-                    Эхлээд «Зураг уншуулах» хэсгээс зураг уншуулна уу.
-                  </Empty.Description>
-                </Empty.Header>
-              </Empty>
-            ) : (
-              <ul className="dandar:divide-y dandar:divide-border">
-                {scans.data?.dandarScans.map((scan) => (
-                  <li
-                    key={scan._id}
-                    className={cn(
-                      "dandar:flex dandar:flex-wrap dandar:items-center dandar:justify-between dandar:gap-2 dandar:py-3",
-                    )}
-                  >
-                    <div className="dandar:flex dandar:flex-col">
-                      <span className="dandar:font-medium">{scan.title}</span>
-                      <span className="dandar:text-xs dandar:text-muted-foreground">
-                        {scan.subject ?? ""}
-                      </span>
-                    </div>
-                    <Button size="sm" disabled={drafting} onClick={() => run({ scanId: scan._id })}>
-                      <IconSparkles />
-                      {drafting ? "Үүсгэж байна…" : "Карт үүсгэх"}
-                    </Button>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </Card.Content>
-        </Card>
+        <ScanPicker drafting={drafting} onGenerate={(scanIds) => run({ scanIds })} />
       </Tabs.Content>
     </Tabs>
   );

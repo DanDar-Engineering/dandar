@@ -94,14 +94,14 @@ export const CARD_REVIEW_MUTATION = gql(`
 export const CARDS_DRAFT_MUTATION = gql(`
   mutation dandarCardsDraft(
     $notes: String
-    $scanId: String
+    $scanIds: [String!]
     $mimeType: String
     $imageData: String
     $options: DandarCardOptionsInput
   ) {
     dandarCardsDraft(
       notes: $notes
-      scanId: $scanId
+      scanIds: $scanIds
       mimeType: $mimeType
       imageData: $imageData
       options: $options
@@ -121,9 +121,9 @@ export const CARDS_SAVE_MUTATION = gql(`
     $deck: String!
     $cards: [DandarCardInput!]!
     $examDate: String
-    $scanId: String
+    $scanIds: [String!]
   ) {
-    dandarCardsSave(deck: $deck, cards: $cards, examDate: $examDate, scanId: $scanId) {
+    dandarCardsSave(deck: $deck, cards: $cards, examDate: $examDate, scanIds: $scanIds) {
       _id
     }
   }
@@ -150,6 +150,39 @@ export const CARD_HELP_MUTATION = gql(`
   }
 `);
 
+export const STUDY_SETTINGS_QUERY = gql(`
+  query dandarStudySettings {
+    dandarStudySettings {
+      reviewReminder
+      reminderHour
+      examAlerts
+      quietStart
+      quietEnd
+    }
+  }
+`);
+
+export const STUDY_SETTINGS_SAVE_MUTATION = gql(`
+  mutation dandarStudySettingsSave($input: DandarStudySettingsInput!) {
+    dandarStudySettingsSave(input: $input) {
+      reviewReminder
+      reminderHour
+      examAlerts
+      quietStart
+      quietEnd
+    }
+  }
+`);
+
+export const SCAN_CARD_COUNTS_QUERY = gql(`
+  query dandarScanCardCounts {
+    dandarScanCardCounts {
+      scanId
+      cards
+    }
+  }
+`);
+
 // Operations whose result changes after cards are added, reviewed or removed.
 export const STUDY_REFETCH = [
   "dandarStudyCounts",
@@ -157,4 +190,5 @@ export const STUDY_REFETCH = [
   "dandarStudyCards",
   "dandarDeckMastery",
   "dandarExams",
+  "dandarScanCardCounts",
 ];

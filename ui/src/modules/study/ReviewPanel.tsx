@@ -1,30 +1,76 @@
 import { useMutation, useQuery } from "@apollo/client";
-import { useState } from "react";
-import { IconBulb, IconPlayerPlay, IconSparkles } from "@tabler/icons-react";
-import { Button, Card, Empty, Skeleton, cn, toast } from "erxes-ui";
+import { useEffect, useState } from "react";
+import { IconBulb, IconPlayerPlay, IconPlayerSkipForward, IconSparkles } from "@tabler/icons-react";
+import { Badge, Button, Card, Empty, Kbd, Skeleton, cn, toast } from "erxes-ui";
 import type { DandarCardGrade, DandarCardHelpMode } from "~/gql/graphql";
 import { formatInterval } from "./format";
 import {
   CARD_HELP_MUTATION,
   CARD_REVIEW_MUTATION,
+  DECK_MASTERY_QUERY,
   DUE_CARDS_QUERY,
   EXAMS_QUERY,
   STUDY_COUNTS_QUERY,
   STUDY_REFETCH,
 } from "./graphql";
 
-const GRADES: { grade: DandarCardGrade; label: string; className: string }[] = [
-  { grade: "forgot", label: "Мартсан", className: "dandar:bg-warning/15" },
-  { grade: "unsure", label: "Хэцүү", className: "" },
-  { grade: "know", label: "Сайн", className: "dandar:bg-primary/10" },
-  { grade: "easy", label: "Амархан", className: "dandar:bg-success/15" },
+const GRADES: { grade: DandarCardGrade; label: string; key: string; className: string }[] = [
+  { grade: "forgot", label: "Мартсан", key: "1", className: "dandar:bg-warning/15" },
+  { grade: "unsure", label: "Хэцүү", key: "2", className: "" },
+  { grade: "know", label: "Сайн", key: "3", className: "dandar:bg-primary/10" },
+  { grade: "easy", label: "Амархан", key: "4", className: "dandar:bg-success/15" },
 ];
 
 const PAGE = 20;
 
+// Shortcuts must not fire while the student types somewhere else on the page.
+const isTyping = (target: EventTarget | null) =>
+  target instanceof HTMLElement &&
+  (target.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName));
+
+const Bar = ({ value }: { value: number }) => (
+  <div className="dandar:h-1.5 dandar:w-full dandar:overflow-hidden dandar:rounded-full dandar:bg-muted">
+    <div
+      className="dandar:h-full dandar:rounded-full dandar:bg-primary dandar:transition-all"
+      style={{ width: `${Math.min(100, Math.max(0, value))}%` }}
+    />
+  </div>
+);
+
+const WeakDecks = () => {
+  const { data } = useQuery(DECK_MASTERY_QUERY);
+  const weak = (data?.dandarDeckMastery ?? []).filter((deck) => deck.weak);
+  if (!weak.length) return null;
+
+  return (
+    <Card>
+      <Card.Header>
+        <Card.Title className="dandar:text-base">Илүү ойр давтах сэдэв</Card.Title>
+        <Card.Description>Эдгээр багцын картууд илүү ойр давтагдана.</Card.Description>
+      </Card.Header>
+      <Card.Content className="dandar:flex dandar:flex-col dandar:gap-3">
+        {weak.map((deck) => (
+          <div key={deck.deck} className="dandar:flex dandar:flex-col dandar:gap-1">
+            <div className="dandar:flex dandar:items-center dandar:justify-between dandar:text-sm">
+              <span>{deck.deck}</span>
+              <span className="dandar:text-muted-foreground">
+                {deck.mastery}% · {deck.cards} карт
+              </span>
+            </div>
+            <Bar value={deck.mastery} />
+          </div>
+        ))}
+      </Card.Content>
+    </Card>
+  );
+};
+
 export const ReviewPanel = () => {
   const [shown, setShown] = useState(false);
   const [help, setHelp] = useState("");
+  const [done, setDone] = useState(0);
+  // Skipped cards go to the back of this session only; the schedule is unchanged.
+  const [skipped, setSkipped] = useState<string[]>([]);
 
   const counts = useQuery(STUDY_COUNTS_QUERY);
   const due = useQuery(DUE_CARDS_QUERY, { variables: { limit: PAGE } });
@@ -36,6 +82,7 @@ export const ReviewPanel = () => {
     onCompleted: () => {
       setShown(false);
       setHelp("");
+      setDone((count) => count + 1);
     },
     onError: (error) =>
       toast({ title: "Хадгалж чадсангүй", description: error.message, variant: "destructive" }),
@@ -44,6 +91,44 @@ export const ReviewPanel = () => {
     onCompleted: ({ dandarCardHelp }) => setHelp(dandarCardHelp),
     onError: (error) =>
       toast({ title: "Gemma хариулсангүй", description: error.message, variant: "destructive" }),
+  });
+
+  const cards = due.data?.dandarDueCards ?? [];
+  const ordered = [
+    ...cards.filter((item) => !skipped.includes(item._id)),
+    ...cards.filter((item) => skipped.includes(item._id)),
+  ];
+  const card = ordered[0];
+
+  const grade = (value: DandarCardGrade) => {
+    if (card && !reviewing) review({ variables: { _id: card._id, grade: value } });
+  };
+  const skip = () => {
+    if (!card) return;
+    setSkipped((current) => [...current.filter((id) => id !== card._id), card._id]);
+    setShown(false);
+    setHelp("");
+  };
+  const ask = (mode: DandarCardHelpMode) => card && askHelp({ variables: { _id: card._id, mode } });
+
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (!card || event.metaKey || event.ctrlKey || event.altKey || isTyping(event.target)) return;
+      if (!shown && (event.key === " " || event.key === "Enter")) {
+        event.preventDefault();
+        setShown(true);
+        return;
+      }
+      const match = GRADES.find((item) => item.key === event.key);
+      if (shown && match) {
+        event.preventDefault();
+        grade(match.grade);
+        return;
+      }
+      if (event.key === "s" || event.key === "S") skip();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
   });
 
   if (due.loading || counts.loading) {
@@ -73,12 +158,10 @@ export const ReviewPanel = () => {
     );
   }
 
-  const cards = due.data?.dandarDueCards ?? [];
-  const card = cards[0];
   const stats = counts.data?.dandarStudyCounts;
   const queue = (stats?.newCards ?? 0) + (stats?.dueCards ?? 0);
+  const sessionTotal = done + queue;
   const nextExam = [...(exams.data?.dandarExams ?? [])].sort((a, b) => a.daysLeft - b.daysLeft)[0];
-  const ask = (mode: DandarCardHelpMode) => card && askHelp({ variables: { _id: card._id, mode } });
 
   return (
     <div className="dandar:flex dandar:flex-col dandar:gap-4">
@@ -112,7 +195,9 @@ export const ReviewPanel = () => {
           <Card.Content className="dandar:pt-6">
             <Empty>
               <Empty.Header>
-                <Empty.Title>Өнөөдөр давтах карт алга 🎯</Empty.Title>
+                <Empty.Title>
+                  {done ? `Өнөөдөр ${done} карт давтлаа 🎯` : "Өнөөдөр давтах карт алга 🎯"}
+                </Empty.Title>
                 <Empty.Description>Шинэ карт нэмж, эсвэл дараа эргэж ирээрэй.</Empty.Description>
               </Empty.Header>
             </Empty>
@@ -120,11 +205,17 @@ export const ReviewPanel = () => {
         </Card>
       ) : (
         <Card>
-          <Card.Header>
+          <Card.Header className="dandar:flex dandar:flex-col dandar:gap-2">
             <div className="dandar:flex dandar:items-center dandar:justify-between dandar:text-sm dandar:text-muted-foreground">
-              <span>{card.deck}</span>
-              <span>{card.reviews === 0 ? "Шинэ карт" : `${card.reviews} удаа давтсан`}</span>
+              <span className="dandar:flex dandar:items-center dandar:gap-2">
+                {card.deck}
+                {card.reviews === 0 ? <Badge variant="info">Шинэ</Badge> : null}
+              </span>
+              <span>
+                {done + 1} / {sessionTotal}
+              </span>
             </div>
+            <Bar value={(done / Math.max(1, sessionTotal)) * 100} />
           </Card.Header>
           <Card.Content className="dandar:flex dandar:flex-col dandar:gap-4">
             <div>
@@ -146,14 +237,17 @@ export const ReviewPanel = () => {
 
             {shown ? (
               <>
-                <p className="dandar:text-sm dandar:text-muted-foreground">Хэр санаж чадсан бэ?</p>
+                <p className="dandar:text-sm dandar:text-muted-foreground">
+                  Хэр санаж чадсан бэ? Зөвхөн дараагийн давталтын цагийг тохируулна. Оноо, дүн
+                  байхгүй.
+                </p>
                 <div className="dandar:grid dandar:grid-cols-2 dandar:gap-2 dandar:sm:grid-cols-4">
-                  {GRADES.map(({ grade, label, className }) => (
+                  {GRADES.map(({ grade: value, label, key, className }) => (
                     <Button
-                      key={grade}
+                      key={value}
                       variant="outline"
                       disabled={reviewing}
-                      onClick={() => review({ variables: { _id: card._id, grade } })}
+                      onClick={() => grade(value)}
                       className={cn(
                         "dandar:h-auto dandar:flex-col dandar:gap-0 dandar:py-3",
                         className,
@@ -161,7 +255,7 @@ export const ReviewPanel = () => {
                     >
                       <span className="dandar:font-medium">{label}</span>
                       <span className="dandar:text-xs dandar:font-normal dandar:opacity-70">
-                        {card.preview ? formatInterval(card.preview[grade]) : ""}
+                        {card.preview ? formatInterval(card.preview[value]) : ""} · {key}
                       </span>
                     </Button>
                   ))}
@@ -190,6 +284,10 @@ export const ReviewPanel = () => {
                 <Button variant="outline" disabled={helping} onClick={() => ask("mnemonic")}>
                   Санах арга
                 </Button>
+                <Button variant="ghost" onClick={skip}>
+                  <IconPlayerSkipForward />
+                  Алгасах
+                </Button>
               </div>
             )}
             {helping ? (
@@ -202,9 +300,14 @@ export const ReviewPanel = () => {
                 {help}
               </p>
             ) : null}
+            <p className="dandar:flex dandar:flex-wrap dandar:items-center dandar:gap-1 dandar:text-xs dandar:text-muted-foreground">
+              <Kbd>Space</Kbd> хариу · <Kbd>1</Kbd>–<Kbd>4</Kbd> үнэлгээ · <Kbd>S</Kbd> алгасах
+            </p>
           </Card.Content>
         </Card>
       )}
+
+      <WeakDecks />
     </div>
   );
 };

@@ -14,7 +14,7 @@ export type Draft = {
   deck: string;
   examDate: string;
   cards: DraftCard[];
-  scanId?: string;
+  scanIds: string[];
 };
 
 // Gemma's cards can be wrong, so the student checks, edits and drops cards
@@ -135,7 +135,7 @@ export const DraftEditor = ({
                     back: back.trim(),
                   })),
                   examDate: draft.examDate || null,
-                  scanId: draft.scanId || null,
+                  scanIds: draft.scanIds.length ? draft.scanIds : null,
                 },
               })
             }

@@ -44,6 +44,10 @@ const envSchema = z.object({
   GEMINI_API_KEY: optional,
   AI_BASE_URL: optional,
   AI_API_KEY: optional,
+  // Study reminders (erxes notifications): "off" disables the scheduler, the
+  // offset turns UTC into the students' local time (Ulaanbaatar = 480).
+  STUDY_REMINDERS: z.enum(["on", "off"]).default("on"),
+  STUDY_TZ_OFFSET_MINUTES: z.coerce.number().int().min(-720).max(840).default(480),
 });
 
 export const env = envSchema.parse(process.env);
