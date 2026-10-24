@@ -1,5 +1,10 @@
 import { z } from "zod";
 
+export const energyInput = z.enum(["low", "normal", "high"]);
+export type Energy = z.infer<typeof energyInput>;
+export type Availability = { start: string; end: string };
+export type Snooze = { id: string; until: string };
+
 export const taskInput = z.object({
   id: z.string().min(1).max(64),
   title: z.string().trim().min(1).max(200),
@@ -17,6 +22,7 @@ export const preferencesInput = z.object({
   timeZone: z.string().min(1).max(80),
   focus: z.union([z.literal(25), z.literal(45)]),
   sessionReminderMinutes: z.number().int().min(0).max(10080).optional(),
+  energy: energyInput.optional(),
   dailyLimit: z.number().int().min(25).max(480),
 });
 export type Task = z.infer<typeof taskInput>;
@@ -29,6 +35,7 @@ export type Block = {
   status: "planned" | "started" | "completed" | "missed";
   actualMinutes: number;
   startedAt?: string;
+  breakMinutes?: number;
 };
 export type PlannerState = {
   userId: string;
@@ -37,4 +44,8 @@ export type PlannerState = {
   blocks: Block[];
   preferences: Preferences;
   delivered: string[];
+  dismissed?: string[];
+  snoozed?: Snooze[];
+  availability?: Availability[];
+  dayLimits?: Record<string, number>;
 };

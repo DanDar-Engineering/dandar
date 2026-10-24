@@ -19,8 +19,13 @@ export const plannerSchema = schemaWrapper(
         focus: 25,
         dailyLimit: 180,
         sessionReminderMinutes: 15,
+        energy: "normal",
       }),
     },
     delivered: { type: [String], default: [] },
+    dismissed: { type: [String], default: [] },
+    snoozed: { type: [Schema.Types.Mixed], default: [] },
+    availability: { type: [Schema.Types.Mixed], default: [] },
+    dayLimits: { type: Schema.Types.Mixed, default: () => ({}) },
   }),
 );
