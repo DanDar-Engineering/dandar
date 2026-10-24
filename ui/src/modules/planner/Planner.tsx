@@ -18,11 +18,25 @@ import {
   IconFlag,
   IconBook2,
   IconLayoutGrid,
+  IconVolume,
 } from "@tabler/icons-react";
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery } from "@apollo/client";
 import { Link } from "react-router";
 import { PLANNER, UPDATE, PROPOSE } from "./graphql";
+import { MicButton } from "../voice/MicButton";
+import { useSpeak } from "../voice/useSpeak";
+
+// Spoken reminders are a per-device choice (speakers, classroom), so they
+// live in localStorage rather than in the synced preferences.
+const VOICE_KEY = "dandar:voiceReminders";
+const readVoicePreference = () => {
+  try {
+    return localStorage.getItem(VOICE_KEY) !== "off";
+  } catch {
+    return true;
+  }
+};
 
 type Task = {
   id: string;
@@ -124,6 +138,26 @@ export const Planner = () => {
   const [notification, setNotification] = useState(
     typeof Notification === "undefined" ? "unsupported" : Notification.permission,
   );
+  const {
+    configured: voiceReady,
+    sttConfigured: dictationReady,
+    speak,
+    speaking,
+    error: voiceError,
+  } = useSpeak();
+  const [voiceOn, setVoiceOn] = useState(readVoicePreference);
+  const toggleVoice = () => {
+    const next = !voiceOn;
+    setVoiceOn(next);
+    try {
+      localStorage.setItem(VOICE_KEY, next ? "on" : "off");
+    } catch {
+      // Private mode: the choice lasts for this page only.
+    }
+  };
+  useEffect(() => {
+    if (voiceError) setMessage(`Дуут сануулга: ${voiceError}`);
+  }, [voiceError]);
   useEffect(() => {
     if (data) {
       try {
@@ -216,13 +250,18 @@ export const Planner = () => {
       batch.map((r) => r.id),
     ).then((ok) => {
       if (ok) {
+        const titles = [...new Set(batch.map((r) => r.task.title))];
         try {
           new Notification("DanDar • Сануулга", {
-            body: [...new Set(batch.map((r) => r.task.title))].join(" • "),
+            body: titles.join(" • "),
             tag: "dandar-deadlines",
           });
         } catch {
           setMessage("Браузер мэдэгдэл харуулж чадсангүй.");
+        }
+        // The same reminder, read aloud in Mongolian by Chimege.
+        if (voiceOn && voiceReady) {
+          void speak(`Сануулга. ${titles.join(". ")}`);
         }
       }
     });
@@ -655,6 +694,25 @@ export const Planner = () => {
                             Deadline: {time(r.task.deadline)}
                           </span>
                         </div>
+                        {voiceReady && (
+                          <button
+                            className="dandar:icon-button"
+                            aria-label={`${r.task.title} сануулгыг чангаар унших`}
+                            title="Чангаар унших"
+                            disabled={speaking}
+                            onClick={() =>
+                              void speak(
+                                `${r.task.title}. ${
+                                  r.id.startsWith("session:")
+                                    ? "Суралцах сесс удахгүй эхэлнэ"
+                                    : "Даалгаврын эцсийн хугацаа ойртлоо"
+                                }. Эцсийн хугацаа ${time(r.task.deadline)}.`,
+                              )
+                            }
+                          >
+                            <IconVolume size={18} />
+                          </button>
+                        )}
                         <button
                           className="dandar:icon-button"
                           aria-label={`${r.task.title} сануулгыг уншсан`}
@@ -965,6 +1023,23 @@ export const Planner = () => {
                       ? "Мэдэгдэл идэвхтэй"
                       : "Мэдэгдлийн зөвшөөрөл хэрэгтэй"}
               </div>
+              <div className="dandar:preference-row">
+                <span>
+                  <IconVolume size={14} />
+                  Дуут сануулга
+                </span>
+                {voiceReady ? (
+                  <button
+                    className="dandar:soft-button"
+                    aria-pressed={voiceOn}
+                    onClick={toggleVoice}
+                  >
+                    {voiceOn ? "Асаалттай" : "Унтраалттай"}
+                  </button>
+                ) : (
+                  <strong title="Plugin-ий .env-д TTS_PROVIDER-ийг шалгана">Тохируулаагүй</strong>
+                )}
+              </div>
               <button className="dandar:full-soft-button" onClick={() => setModal("preferences")}>
                 Хугацааг тохируулах
                 <IconArrowRight size={15} />
@@ -1052,14 +1127,28 @@ export const Planner = () => {
           >
             <label>
               Даалгаврын нэр
-              <input
-                autoFocus
-                required
-                placeholder="Жишээ: Математикийн давтлага"
-                maxLength={200}
-                value={task.title}
-                onChange={(e) => setTask({ ...task, title: e.target.value })}
-              />
+              <span className="dandar:voice-input">
+                <input
+                  autoFocus
+                  required
+                  placeholder="Жишээ: Математикийн давтлага"
+                  maxLength={200}
+                  value={task.title}
+                  onChange={(e) => setTask({ ...task, title: e.target.value })}
+                />
+                {dictationReady && (
+                  <MicButton
+                    className="dandar:icon-button"
+                    onText={(text) =>
+                      setTask((current) => ({
+                        ...current,
+                        title: `${current.title ? `${current.title} ` : ""}${text}`.slice(0, 200),
+                      }))
+                    }
+                    onError={setMessage}
+                  />
+                )}
+              </span>
             </label>
             <label>
               Хичээл
