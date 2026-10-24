@@ -116,3 +116,13 @@ See `docs/erxes-integration.md`. In short:
 `scripts/setup-erxes.sh` and `scripts/setup-plugin.sh` automate it;
 `scripts/erxes.env.example` is the erxes `.env` template. Keep secrets out of
 the repository: `.env` files are gitignored and the scripts ask for them.
+
+`scripts/start-all.sh` checks MongoDB reachability, then starts plugin API →
+erxes backend → core-ui → plugin UI → VS Code tunnel detached, skipping
+anything already listening (logs and pid files in `~/logs`);
+`scripts/stop-all.sh` kills those process groups and any orphaned Apollo
+Router. `REMOTE.md` covers serving erxes from a home PC to a laptop through a
+VS Code Remote Tunnel and sharing it with the team through Live Share.
+`scripts/vscode-tunnel-login.mjs` logs the VS Code CLI in with GitHub (VS
+Code's OAuth app, `read:user read:org`): the CLI's own device login gets
+stuck on `slow_down`, and GitHub CLI tokens are rejected by the tunnel service.

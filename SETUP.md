@@ -100,7 +100,15 @@ curl http://localhost:4000/get-frontend-plugins
 ## 7. Өдөр бүр
 
 Компьютерээ асаасны дараа 6-р алхмын дөрвөн командыг дахин ажиллуулна. Terminal бүрт
-Ctrl+C дарж зогсооно. Хэрэгтэй бол `~/erxes`-д `git pull` хийгээд `pnpm install` ажиллуулна.
+Ctrl+C дарж зогсооно. Эсвэл нэг командаар бүгдийг арын горимд асааж болно (log: `~/logs/`):
+
+```bash
+bash ~/erxes-plugins/dandar/scripts/start-all.sh   # зогсоох: scripts/stop-all.sh
+```
+
+Скрипт эхлээд MongoDB холболтыг шалгаж, Atlas-д ямар IP нэмэхийг хэлдэг. Хэрэгтэй бол
+`~/erxes`-д `git pull` хийгээд `pnpm install` ажиллуулна. erxes-ийг гэрийн PC дээр ажиллуулж
+laptop-оос холбогдох бол [REMOTE.md](REMOTE.md)-г үзнэ.
 
 ## Gemma 4 тохиргоо
 

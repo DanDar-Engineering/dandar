@@ -3,6 +3,8 @@
 DanDar EdTech plugin for erxes, powered by Gemma 4
 
 **New machine?** Follow [SETUP.md](SETUP.md) (Windows + WSL2, in Mongolian).
+**erxes on a home PC, coding from a laptop?** See [REMOTE.md](REMOTE.md)
+(`scripts/start-all.sh` + VS Code Remote Tunnel, Live Share for the team).
 **Building a feature?** [BUILD.md](BUILD.md) walks through adding a module and
 using erxes data (contacts, members, products) from this plugin.
 Idea shortlist for the team: [docs/IDEAS.md](docs/IDEAS.md).
