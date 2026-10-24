@@ -131,8 +131,8 @@ See `docs/erxes-integration.md`. In short:
   `mastery.ts` weak decks, `exam.ts` `applyExam`: as an exam date nears,
   intervals shrink so each card gets `TARGET_ROUNDS` (4) reviews, and nothing
   is due later than the day before the exam). `pnpm --filter dandar_api test`
-  runs the unit tests (`node --test`, type stripping: no enums or parameter
-  properties in `logic/` and `cardGen.ts`).
+  runs the combined unit tests (`tsx --test`, using the same TypeScript
+  module handling as the API so planner resolver tests can load its config).
 - Gemma only writes content: `dandarCardsDraft` (notes, a photo, or a saved
   scan) and `dandarCardHelp` (hint / explain / mnemonic). Prompts and the
   JSON parser are in `api/src/modules/study/cardGen.ts`; calls go through
