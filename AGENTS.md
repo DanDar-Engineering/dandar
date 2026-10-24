@@ -161,7 +161,17 @@ See `docs/erxes-integration.md`. In short:
   24 kHz WAV only from that host; `chimege` uses `synthesize` below. The
   public Space needs no key but has a shared GPU quota (`OMNIVOICE_HF_TOKEN`
   raises it); self-host with `omnivoice-demo` on a GPU for demos.
-- Speech-to-text is Chimege only.
+- Speech-to-text uses Chimege when `CHIMEGE_STT_TOKEN`/`CHIMEGE_TOKEN` is set,
+  otherwise the browser's Web Speech API in `mn-MN`
+  (`ui/src/modules/voice/browserDictation.ts`, Chrome/Edge only);
+  `MicButton` takes `useChimege` to pick one.
+- Voice planning (`ui/src/modules/planner/VoicePlan.tsx`, header button
+  "Дуугаар төлөвлөх"): the student speaks or types, `dandarPlanFromSpeech`
+  (`api/src/modules/planner/voicePlan.ts`) asks Gemma for `{tasks, windows}`
+  using the planner's time zone and local time, then the planner `schedule()`
+  engine places sessions in those windows. Nothing is stored until
+  "Төлөвлөгөөнд нэмэх" saves each task (`task`) and the sessions (`confirm`)
+  through `dandarPlannerUpdate`. Transcript ≤2000 chars, ≤10 tasks.
 
 - `api/src/modules/voice/chimege.ts` owns every Chimege call: `synthesize`
   (POST `<CHIMEGE_API_URL>/synthesize`, `Token` header, plain text in, audio

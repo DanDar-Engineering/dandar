@@ -37,7 +37,7 @@ const parse = (text: string): unknown => {
     return bad("Invalid JSON");
   }
 };
-async function getState(context: Context, write = false) {
+export async function getState(context: Context, write = false) {
   if (!context.user?._id || !context.subdomain)
     throw new GraphQLError("Login and tenant required", {
       extensions: { code: "UNAUTHENTICATED" },

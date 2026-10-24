@@ -19,12 +19,15 @@ import {
   IconBook2,
   IconLayoutGrid,
   IconVolume,
+  IconMicrophone,
 } from "@tabler/icons-react";
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery } from "@apollo/client";
 import { Link } from "react-router";
 import { PLANNER, UPDATE, PROPOSE } from "./graphql";
 import { MicButton } from "../voice/MicButton";
+import { browserDictationSupported } from "../voice/browserDictation";
+import { VoicePlan, type VoiceBlock, type VoiceTask } from "./VoicePlan";
 import { useSpeak } from "../voice/useSpeak";
 
 // Spoken reminders are a per-device choice (speakers, classroom), so they
@@ -85,7 +88,9 @@ export const Planner = () => {
   const version = useRef(0);
   const busy = useRef(false);
   const [tab, setTab] = useState<"planner" | "reminders">("planner");
-  const [modal, setModal] = useState<"task" | "plan" | "preferences" | "block" | null>(null);
+  const [modal, setModal] = useState<"task" | "plan" | "preferences" | "block" | "voice" | null>(
+    null,
+  );
   const [activeBlock, setActiveBlock] = useState<string | null>(null);
   const dialogRef = useRef<HTMLDialogElement>(null);
   useEffect(() => {
@@ -119,12 +124,27 @@ export const Planner = () => {
   );
   const {
     configured: voiceReady,
-    sttConfigured: dictationReady,
+    sttConfigured,
     speak,
     speaking,
     error: voiceError,
   } = useSpeak();
   const [voiceOn, setVoiceOn] = useState(readVoicePreference);
+  // Chimege when its STT token is set, otherwise the browser's recognizer.
+  const dictationReady = sttConfigured || browserDictationSupported();
+  async function applyVoicePlan(tasks: VoiceTask[], blocks: VoiceBlock[]) {
+    for (const t of tasks) {
+      if (!(await save("task", t))) return false;
+    }
+    if (blocks.length && !(await save("confirm", blocks))) return false;
+    if (voiceOn && voiceReady) {
+      void speak(
+        `Төлөвлөгөөнд ${tasks.length} даалгавар${blocks.length ? `, ${blocks.length} сесс` : ""} нэмлээ.`,
+      );
+    }
+    close();
+    return true;
+  }
   const toggleVoice = () => {
     const next = !voiceOn;
     setVoiceOn(next);
@@ -403,6 +423,12 @@ export const Planner = () => {
               <IconBell size={20} />
               {due.length > 0 && <span className="dandar:notification-dot" />}
             </button>
+            {dictationReady && (
+              <button className="dandar:soft-button" onClick={() => setModal("voice")}>
+                <IconMicrophone size={17} />
+                Дуугаар төлөвлөх
+              </button>
+            )}
             <button className="dandar:primary-button" onClick={newTask}>
               <IconPlus size={17} />
               Даалгавар нэмэх
@@ -1095,6 +1121,8 @@ export const Planner = () => {
               <IconSparkles size={22} />
             ) : modal === "block" ? (
               <IconClock size={22} />
+            ) : modal === "voice" ? (
+              <IconMicrophone size={22} />
             ) : (
               <IconBell size={22} />
             )}
@@ -1107,14 +1135,18 @@ export const Planner = () => {
                   ? "Ухаалаг төлөвлөгөө"
                   : modal === "block"
                     ? "Суралцах сесс"
-                    : "Сануулгын тохиргоо"}
+                    : modal === "voice"
+                      ? "Дуугаар төлөвлөх"
+                      : "Сануулгын тохиргоо"}
             </h2>
             <p>
               {modal === "task"
                 ? "Зорилгоо тодорхойлоод, сануулах цагаа сонгоорой."
                 : modal === "plan"
                   ? "Сул цагаа нэмээд өөрийн хэмнэлээр суралцаарай."
-                  : "Цаг хугацаагаа өөртөө тохируулаарай."}
+                  : modal === "voice"
+                    ? "Хэлсэн зүйлээс тань Gemma 4 даалгавар, цагийн хуваарь гаргана."
+                    : "Цаг хугацаагаа өөртөө тохируулаарай."}
             </p>
           </div>
           <button className="dandar:icon-button" aria-label="Цонх хаах" onClick={close}>
@@ -1152,6 +1184,7 @@ export const Planner = () => {
                 {dictationReady && (
                   <MicButton
                     className="dandar:icon-button"
+                    useChimege={sttConfigured}
                     onText={(text) =>
                       setTask((current) => ({
                         ...current,
@@ -1548,6 +1581,9 @@ export const Planner = () => {
               </div>
             )}
           </div>
+        )}
+        {modal === "voice" && (
+          <VoicePlan useChimege={sttConfigured} saving={saving} time={time} onApply={applyVoicePlan} />
         )}
         {modal === "block" && selectedBlock && (
           <div className="dandar:study-form">
