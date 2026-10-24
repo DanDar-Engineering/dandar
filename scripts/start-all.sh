@@ -3,6 +3,7 @@
 # background, in the order the gateway needs. Safe to re-run: anything already
 # listening is left alone. Logs and pid files: ~/logs/<name>.log|.pid
 #   bash scripts/start-all.sh        (inside Ubuntu)
+#   bash scripts/start-all.sh --host [IP]   also serve phones on the same wifi
 #   wsl -d Ubuntu-24.04 -e bash /home/<user>/erxes-plugins/dandar/scripts/start-all.sh
 set -euo pipefail
 
@@ -14,6 +15,33 @@ TUNNEL_NAME="${TUNNEL_NAME:-dandar-home}"
 mkdir -p "$LOG_DIR"
 
 listening() { ss -ltn "sport = :$1" | grep -q LISTEN; }
+
+# --host: the browser reaches erxes at this PC's LAN address instead of
+# localhost. The API URL, CORS origin and UI remote URL are baked in when each
+# service starts; shell variables win over both .env files (Node --env-file,
+# Nx dotenv). Without an IP, use the Windows interface with the default route.
+public_host=localhost
+core_ui_args=()
+if [ "${1:-}" = "--host" ]; then
+  public_host="${2:-$(powershell.exe -NoProfile -Command "(Get-NetRoute -DestinationPrefix 0.0.0.0/0 | Sort-Object RouteMetric | Get-NetIPAddress -AddressFamily IPv4 | Select-Object -First 1).IPAddress" 2> /dev/null | tr -d '\r' || true)}"
+  if [ -z "$public_host" ]; then
+    echo "Could not detect this PC's LAN address; pass it: --host 192.168.1.20" >&2
+    exit 1
+  fi
+  export UI_ENTRY_URL="http://$public_host:3099/remoteEntry.js" \
+    DOMAIN="http://$public_host:3001" \
+    REACT_APP_API_URL="http://$public_host:4000"
+  # Nx serves core-ui on localhost only; the plugin UI and gateway already
+  # listen on every interface.
+  core_ui_args=(--host=0.0.0.0)
+fi
+
+running_host="$(cat "$LOG_DIR/public-host" 2> /dev/null || echo localhost)"
+if [ "$running_host" != "$public_host" ] && { listening 3399 || listening 4000 || listening 3001 || listening 3099; }; then
+  echo "erxes is already running for http://$running_host:3001; run scripts/stop-all.sh first" >&2
+  exit 1
+fi
+echo "$public_host" > "$LOG_DIR/public-host"
 
 start() {
   local name="$1" dir="$2"
@@ -86,7 +114,7 @@ wait_port 3399 "plugin API" 40
 listening 4000 || start_backend
 wait_gateway
 
-listening 3001 || start core-ui "$ERXES_DIR" pnpm nx serve core-ui
+listening 3001 || start core-ui "$ERXES_DIR" pnpm nx serve core-ui "${core_ui_args[@]}"
 listening 3099 || start plugin-ui "$PLUGIN_DIR" pnpm run dev:ui
 wait_port 3099 "plugin UI" 60
 wait_port 3001 "erxes UI" 100
@@ -105,4 +133,21 @@ if [ -x "$CODE_CLI" ]; then
 fi
 
 echo
-echo "erxes is up: http://localhost:3001"
+url="http://$public_host:3001"
+if [ "$public_host" != localhost ]; then
+  # WSL's NAT address needs a Windows port proxy; mirrored networking shares
+  # the Windows address and needs none.
+  wsl_ip="$(hostname -I | cut -d' ' -f1)"
+  proxies="$(netsh.exe interface portproxy show v4tov4 2> /dev/null | tr -d '\r' || true)"
+  if [ "$wsl_ip" != "$public_host" ] && ! grep -Eq "\b3001 +$wsl_ip +3001\b" <<< "$proxies"; then
+    echo "Phones cannot reach WSL yet. In an admin PowerShell on Windows, run:"
+    echo "  powershell -ExecutionPolicy Bypass -File $(wslpath -w "$PLUGIN_DIR/scripts/phone-forward.ps1") -WslIp $wsl_ip"
+    echo
+  fi
+  if command -v qrencode > /dev/null; then
+    qrencode -t ansiutf8 "$url"
+  fi
+  echo "erxes is up: $url (this PC and phones on the same wifi)"
+else
+  echo "erxes is up: $url"
+fi

@@ -218,7 +218,13 @@ erxes backend → core-ui → plugin UI → VS Code tunnel detached, skipping
 anything already listening (logs and pid files in `~/logs`) and restarting the
 backend once if the gateway crashes while Apollo Router starts;
 `scripts/stop-all.sh` kills those process groups and any orphaned Apollo
-Router. `REMOTE.md` covers serving erxes from a home PC to a laptop through a
+Router. `start-all.sh --host [IP]` serves phones on the same wifi: it binds
+core-ui to `0.0.0.0`, exports the Windows LAN address as
+`REACT_APP_API_URL`, `DOMAIN` (gateway CORS) and `UI_ENTRY_URL`, refuses to
+reuse services started for another host (`~/logs/public-host`), and prints the
+admin `scripts/phone-forward.ps1` command (port proxy + LocalSubnet firewall
+rule for 3001/3099/4000; 3399 stays private) while WSL's NAT address is not
+forwarded. `REMOTE.md` covers serving erxes from a home PC to a laptop through a
 VS Code Remote Tunnel and sharing it with the team through Live Share.
 `scripts/vscode-tunnel-login.mjs` logs the VS Code CLI in with GitHub (VS
 Code's OAuth app, `read:user read:org`): the CLI's own device login gets
