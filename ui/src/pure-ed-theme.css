@@ -326,7 +326,183 @@
   transition: width 0.3s ease;
 }
 
-/* Pure-Ed Responsive */
+/* Pure-Ed Animations */
+
+/* Pulse animation for logo */
+@keyframes pure-pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.05);
+  }
+}
+
+/* Bounce animation for chat messages */
+@keyframes pure-bounce-in {
+  0% {
+    opacity: 0;
+    transform: translateY(10px) scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Gentle float animation */
+@keyframes pure-float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-3px);
+  }
+}
+
+/* Shimmer loading effect */
+@keyframes pure-shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
+/* Spin animation for loading */
+@keyframes pure-spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* Apply pulse to Pure logo */
+.pure-logo-icon {
+  animation: pure-pulse 3s ease-in-out infinite;
+}
+
+/* Logo hover effect */
+.pure-logo:hover .pure-logo-icon {
+  animation: pure-pulse 2s ease-in-out infinite;
+}
+
+/* Chat message animations */
+.pure-ai-message {
+  animation: pure-bounce-in 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.pure-user-message {
+  animation: pure-bounce-in 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Button hover animations */
+.pure-btn {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.pure-btn::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+  transform: translate(-50%, -50%);
+  transition: width 0.6s, height 0.6s;
+}
+
+.pure-btn:hover::before {
+  width: 300px;
+  height: 300px;
+}
+
+.pure-btn-primary:hover {
+  animation: pure-float 0.5s ease-in-out;
+}
+
+/* Card hover float effect */
+.pure-card {
+  transition: all 0.3s ease;
+}
+
+.pure-card:hover {
+  animation: pure-float 0.6s ease-in-out infinite;
+}
+
+/* Input focus glow */
+.pure-input:focus {
+  animation: none;
+  box-shadow: 0 0 0 3px rgba(73, 73, 255, 0.2), 0 0 12px rgba(73, 73, 255, 0.3);
+}
+
+/* Loading dots animation */
+.pure-loading-dot {
+  animation: pure-bounce 1.4s infinite ease-in-out both;
+}
+
+.pure-loading-dot:nth-child(1) {
+  animation-delay: -0.32s;
+}
+
+.pure-loading-dot:nth-child(2) {
+  animation-delay: -0.16s;
+}
+
+@keyframes pure-bounce {
+  0%, 80%, 100% {
+    opacity: 0.3;
+    transform: scale(0.8);
+  }
+  40% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Badge pulse on new notification */
+.pure-badge {
+  transition: all 0.3s ease;
+}
+
+.pure-badge:hover {
+  transform: scale(1.1);
+}
+
+/* Toggle switch smooth animation */
+.pure-toggle {
+  transition: background 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.pure-toggle::after {
+  transition: left 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Step indicator animation */
+.pure-step {
+  transition: all 0.3s ease;
+}
+
+.pure-step:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Progress bar animation */
+.pure-progress-fill {
+  transition: width 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Responsive */
 @media (max-width: 640px) {
   .pure-ai-message .pure-chat-bubble,
   .pure-user-message .pure-chat-bubble {

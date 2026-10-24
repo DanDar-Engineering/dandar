@@ -31,7 +31,13 @@ export const PureLogo = ({ size = "md" }: { size?: "sm" | "md" | "lg" }) => {
   );
 };
 
-export const PureLogoIcon = ({ size = "md" }: { size?: "sm" | "md" | "lg" }) => {
+export const PureLogoIcon = ({
+  size = "md",
+  animated = false
+}: {
+  size?: "sm" | "md" | "lg"
+  animated?: boolean
+}) => {
   const sizeMap = {
     sm: "w-6 h-6",
     md: "w-8 h-8",
@@ -41,7 +47,7 @@ export const PureLogoIcon = ({ size = "md" }: { size?: "sm" | "md" | "lg" }) => 
   return (
     <svg
       viewBox="0 0 40 40"
-      className={sizeMap[size]}
+      className={`${sizeMap[size]} ${animated ? "animate-spin" : ""}`}
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
     >
