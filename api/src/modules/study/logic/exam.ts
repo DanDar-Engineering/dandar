@@ -9,7 +9,8 @@ export const TARGET_ROUNDS = 4;
  * TARGET_ROUNDS давталт хийлгэнэ. Давталтыг сорилын өмнөх өдрөөс хэтрүүлэхгүй.
  */
 export function applyExam(card: CardState, examAt: number | null, now: number): CardState {
-  if (!examAt || examAt <= now) return card;
+  // On the day before the exam the last review is done; nothing to tighten.
+  if (!examAt || now >= examAt - DAY_MS) return card;
   const daysLeft = (examAt - now) / DAY_MS;
   const remaining = Math.max(1, TARGET_ROUNDS - card.reviews);
   const capDays = Math.max(0.1, (daysLeft - 1) / remaining);

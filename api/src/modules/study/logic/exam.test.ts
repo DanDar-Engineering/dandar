@@ -32,3 +32,27 @@ test("examProgress: давталт ба бэлэн байдал өснө", () =>
   const p = examProgress([done], exam, t0);
   assert.ok(p.rounds > 0 && p.readiness > 0 && p.daysLeft === 5);
 });
+
+test("the day before the exam a reviewed card does not come straight back", () => {
+  const exam = t0 + 6 * DAY_MS;
+  let c = newCard("a", "t", t0);
+  let now = t0;
+  for (let i = 0; i < 6 && now < exam; i++) {
+    c = applyExam(review(c, "easy", now), exam, now);
+    assert.ok(c.dueAt > now, `review ${i} at day ${(now - t0) / DAY_MS} is due again at once`);
+    now = c.dueAt;
+  }
+});
+
+test("exam schedule still lands at least once on the day before the exam", () => {
+  const exam = t0 + 6 * DAY_MS;
+  let c = newCard("a", "t", t0);
+  let now = t0;
+  const days: number[] = [];
+  while (now < exam - DAY_MS) {
+    c = applyExam(review(c, "easy", now), exam, now);
+    now = c.dueAt;
+    days.push((now - t0) / DAY_MS);
+  }
+  assert.ok(days.some((day) => day >= 5 && day < 6), `due days ${days.join(", ")}`);
+});
