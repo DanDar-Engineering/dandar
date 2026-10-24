@@ -14,6 +14,7 @@
 @layer theme, base, components, utilities;
 @import "tailwindcss/theme.css" layer(theme) prefix(dandar);
 @import "tailwindcss/utilities.css" layer(utilities) source(none);
+@import "./pure-ed-theme.css";
 @source "./";
 
 @custom-variant dark (&:is(.dark *));

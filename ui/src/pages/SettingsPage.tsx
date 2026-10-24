@@ -3,7 +3,7 @@ import { Breadcrumb, Button, Card, Empty, Separator } from "erxes-ui";
 import { PageHeader } from "ui-modules";
 import { Link } from "react-router";
 import manifest from "../../../erxes.json" with { type: "json" };
-import { AskGemma } from "../modules/ai/AskGemma";
+import { PureChat } from "../modules/ai/PureChat";
 
 const { path } = manifest.ui;
 
@@ -92,8 +92,8 @@ export const SettingsPage = () => (
             </Empty>
           </Card.Content>
         </Card>
-        {/* Optional: works once GEMINI_API_KEY (or AI_BASE_URL) is set in .env. */}
-        <AskGemma />
+        {/* Pure-Ed Chat Interface: works once GEMINI_API_KEY (or AI_BASE_URL) is set in .env. */}
+        <PureChat />
       </div>
     </div>
   </div>
