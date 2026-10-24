@@ -12,6 +12,7 @@ is the single source of the plugin's identity and ports.
 - `pnpm run dev:api` / `pnpm run dev:ui`
 - `pnpm run codegen`
 - `pnpm run check`, `pnpm run lint`, `pnpm run build`, `pnpm run fmt`
+- `pnpm run smoke` (end-to-end API check), `pnpm run seed:demo` (showcase data)
 - `docker build --build-arg UI_ENTRY_URL=<remoteEntry.js URL> -t <image> .`
 
 Run `check`, `lint` and `build` before calling a change done.
@@ -246,23 +247,55 @@ See `docs/erxes-integration.md`. In short:
 
 ## Gemma 4 (AI, optional)
 
-- The "Ask Gemma 4" card lives on the settings page, not the overview.
+- The settings page (`ui/src/pages/SettingsPage.tsx`) has the "Pure AI
+  туслах" chat (`ui/src/modules/ai/PureChat.tsx`, `dandarAsk`) and a
+  connection card (Gemma 4, text-to-speech, speech recognition); the planner
+  header links there as "AI туслах". `AskGemma.tsx` is the older card, unused.
 
 - `api/src/modules/ai/gemma.ts` owns every model call (`askGemma`,
   `getAiStatus`); resolvers never call a provider directly. `AI_PROVIDER`
   selects `gemini` (Gemini API `generateContent`, thought parts dropped) or
   `openai` (any OpenAI-compatible `/chat/completions`: Ollama, DigitalOcean).
-  Calls use Node's `fetch` with a 60 s timeout (180 s with an image); there is
+  Calls use Node's `fetch` with a 60 s timeout (180 s with an image) and retry
+  once on 429/5xx (Gemini's passing "Internal error encountered"); there is
   no AI SDK dependency. `askGemma`'s options take an `image` (base64 +
   mimeType: Gemini `inlineData`, OpenAI-compatible `image_url` data URL) and a
   `temperature`.
 - `TUTOR_SYSTEM_PROMPT` stays server-side; the UI sends only the question.
-  `MAX_PROMPT_LENGTH` (4000) is mirrored in `ui/src/modules/ai/AskGemma.tsx`.
+  `MAX_PROMPT_LENGTH` (4000) is mirrored in `ui/src/modules/ai/PureChat.tsx`.
 - `dandarAsk` is a mutation: it spends provider quota. Missing configuration
   is reported as `AI_NOT_CONFIGURED`, upstream failures as
   `AI_PROVIDER_ERROR`. Never return or log keys.
 - AI settings live in `.env` (see `.env.example`); restart `dev:api` after
   changing them.
+
+## User-facing text
+
+- The UI is Mongolian, and so are the API's error messages: the UI shows
+  `error.message` as is (toasts, the planner alert bar). Write new messages
+  in Mongolian; tests that match a message use its Mongolian wording.
+- Say "эцсийн хугацаа" (not "deadline"), "хөтөч" (not "browser") and
+  "чимээгүй цаг" for quiet hours in both the planner and study settings.
+- Planner task ids come from `createTaskId` (`ui/src/modules/planner/taskId.ts`):
+  `crypto.randomUUID` throws on phones that open erxes over plain http.
+
+## Demo data and smoke test
+
+- `pnpm run seed:demo` (`api/src/dev/seedDemo.ts`) writes a showcase straight
+  to `MONGO_URL` for the erxes owner (`-- --student <email> --teacher <email>`
+  to choose; `--dry-run`, `--reset`): 6 scans with photos from `demo/scans/`,
+  38 cards in 4 decks whose states and 7-day history come from replaying the
+  real scheduler, 3 exams, reminder settings and a planner week. Demo records
+  have `demo_` ids (planner tasks/sessions `demo-`), so a re-run replaces them
+  and `--reset` never touches the student's own data. `demo/README.md` is the
+  showcase script.
+- `pnpm run smoke` (`api/src/dev/smokeTest.ts`) walks every feature against the
+  running `dev:api` (scan → cards → review → quiz → progress → exams → settings
+  → planner → voice plan → tutor → TTS) as throwaway owner users sent in the
+  gateway's `user` header, then deletes their records (needs `MONGO_URL`).
+  `SMOKE_SKIP_AI=1` skips the Gemma steps. Never point it at production.
+- `api/src/dev` is type-checked but excluded from the build
+  (`api/tsconfig.build.json`).
 
 ## Machine setup
 

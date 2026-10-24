@@ -132,7 +132,7 @@ export const VoicePlan = ({ useChimege, saving, time, onApply }: Props) => {
               <span>
                 <strong>{t.title}</strong>
                 <small>
-                  {t.subject ? `${t.subject} · ` : ""}Deadline: {time(t.deadline)} · {t.minutes} мин
+                  {t.subject ? `${t.subject} · ` : ""}Эцсийн хугацаа: {time(t.deadline)} · {t.minutes} мин
                 </small>
               </span>
             </div>

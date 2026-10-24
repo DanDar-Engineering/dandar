@@ -1,4 +1,5 @@
 import "./planner.css";
+import { createTaskId } from "./taskId";
 import {
   IconCalendar,
   IconBell,
@@ -47,7 +48,7 @@ const local = (date: Date) =>
   new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
 const day = (date: Date) => local(date).slice(0, 10);
 const freshTask = (): Task => ({
-  id: crypto.randomUUID(),
+  id: createTaskId(),
   title: "",
   subject: "",
   deadline: new Date(Date.now() + 86400000).toISOString(),
@@ -69,6 +70,17 @@ const blank: State = {
     dailyLimit: 180,
     sessionReminderMinutes: 15,
   },
+};
+// Reminder offsets in minutes before the deadline: [1440, 60, 0] →
+// "1 өдөр, 1 цаг өмнө · яг хугацаанд".
+const reminderText = (minutes: number[]) => {
+  const before = [...new Set(minutes)]
+    .filter((m) => m > 0)
+    .sort((a, b) => b - a)
+    .map((m) => (m % 1440 === 0 ? `${m / 1440} өдөр` : m % 60 === 0 ? `${m / 60} цаг` : `${m} мин`));
+  return [before.length ? `${before.join(", ")} өмнө` : "", minutes.includes(0) ? "яг хугацаанд" : ""]
+    .filter(Boolean)
+    .join(" · ");
 };
 const time = (value: string) =>
   new Date(value).toLocaleString("mn-MN", {
@@ -270,7 +282,7 @@ export const Planner = () => {
       if (ok) {
         const titles = [...new Set(batch.map((r) => r.task.title))];
         try {
-          const notice = new Notification("DanDar • Сануулга", {
+          const notice = new Notification("Pure-Ed • Сануулга", {
             body: titles.join(" • "),
             tag: "dandar-deadlines",
           });
@@ -451,7 +463,7 @@ export const Planner = () => {
             Сануулга{due.length > 0 && <span className="dandar:count-badge">{due.length}</span>}
           </button>
           <Link to="/dandar/settings">
-            <IconSettings size={16} /> AI тохиргоо
+            <IconSettings size={16} /> AI туслах
           </Link>
         </nav>
         {(message || error) && (
@@ -474,7 +486,7 @@ export const Planner = () => {
                   <div>
                     <div className="dandar:eyebrow">ЧИНИЙ ХЭМНЭЛД ТОХИРСОН</div>
                     <h2>Сурах цагаа ухаалгаар төлөвлөе</h2>
-                    <p>Сул цаг, deadline-д чинь тааруулж Gemma төлөвлөгөө санал болгоно.</p>
+                    <p>Сул цаг, эцсийн хугацаанд чинь тааруулж Gemma төлөвлөгөө санал болгоно.</p>
                     <div className="dandar:banner-tags">
                       <span>
                         <IconCheck size={13} /> Давхцалгүй хуваарь
@@ -627,7 +639,7 @@ export const Planner = () => {
                                     setActiveBlock(b.id);
                                     setModal("block");
                                   }}
-                                  title={`${t?.title} · ${clock(b.start)}–${clock(b.end)} · Deadline: ${t ? time(t.deadline) : ""}`}
+                                  title={`${t?.title} · ${clock(b.start)}–${clock(b.end)} · Эцсийн хугацаа: ${t ? time(t.deadline) : ""}`}
                                 >
                                   <span>
                                     {b.status === "completed" ? (
@@ -677,8 +689,8 @@ export const Planner = () => {
                   <div>
                     <h2>Цагаа өөрөө сонго. Бид сануулъя.</h2>
                     <p>
-                      Сесс эхлэхээс <strong>{lead} минутын өмнө</strong> мэдэгдэл ирнэ. Deadline-ийн
-                      цагийг даалгавар бүр дээр тохируулна.
+                      Сесс эхлэхээс <strong>{lead} минутын өмнө</strong> мэдэгдэл ирнэ. Эцсийн хугацааны
+                      сануулгыг даалгавар бүр дээр тохируулна.
                     </p>
                   </div>
                   <button className="dandar:primary-button" onClick={() => setModal("preferences")}>
@@ -723,7 +735,7 @@ export const Planner = () => {
                           </p>
                           <span className="dandar:deadline-label">
                             <IconFlag size={13} />
-                            Deadline: {time(r.task.deadline)}
+                            Эцсийн хугацаа: {time(r.task.deadline)}
                           </span>
                         </div>
                         {voiceReady && (
@@ -859,13 +871,11 @@ export const Planner = () => {
                           }
                         >
                           <IconFlag size={12} />
-                          Deadline: {time(t.deadline)}
+                          Эцсийн хугацаа: {time(t.deadline)}
                         </span>
                         <span>
                           <IconBell size={12} />
-                          {t.reminders.length
-                            ? t.reminders.map((m) => `${m} мин`).join(", ")
-                            : "Унтраасан"}
+                          {t.reminders.length ? reminderText(t.reminders) : "Сануулгагүй"}
                         </span>
                       </div>
                     </div>
@@ -898,7 +908,7 @@ export const Planner = () => {
                     <IconBook2 size={30} />
                   </span>
                   <h3>Жижиг ажлаас эхэлцгээе</h3>
-                  <p>Даалгавар, deadline-аа нэмээд сурах цагаа төлөвлөөрэй.</p>
+                  <p>Даалгавар, эцсийн хугацаагаа нэмээд сурах цагаа төлөвлөөрэй.</p>
                   <button className="dandar:primary-button" onClick={newTask}>
                     <IconPlus size={16} />
                     Даалгавар нэмэх
@@ -964,7 +974,7 @@ export const Planner = () => {
                 </button>
               )}
               {running && remaining === 0 && (
-                <p role="status">Сессийн цаг дууслаа. Түр завсарлаарай.</p>
+                <p role="status">Сессийн цаг дууслаа. Түр амраарай.</p>
               )}
             </section>
             <section className="dandar:surface-card dandar:compact-card">
@@ -1002,7 +1012,7 @@ export const Planner = () => {
             <section className="dandar:surface-card dandar:compact-card">
               <h2>
                 <IconFlag size={17} />
-                Ойрын deadline
+                Ойрын эцсийн хугацаа
               </h2>
               {openTasks.length ? (
                 openTasks.slice(0, 4).map((t, i) => (
@@ -1076,7 +1086,7 @@ export const Planner = () => {
                     {voiceOn ? "Асаалттай" : "Унтраалттай"}
                   </button>
                 ) : (
-                  <strong title="Plugin-ий .env-д TTS_PROVIDER-ийг шалгана">Тохируулаагүй</strong>
+                  <strong title="Plugin-ий .env файлд TTS_PROVIDER-г шалгана уу">Тохируулаагүй</strong>
                 )}
               </div>
               <button className="dandar:full-soft-button" onClick={() => setModal("preferences")}>
@@ -1130,7 +1140,7 @@ export const Planner = () => {
           <div>
             <h2 id="dandar-dialog-title">
               {modal === "task"
-                ? "Даалгавар ба deadline"
+                ? "Даалгавар ба эцсийн хугацаа"
                 : modal === "plan"
                   ? "Ухаалаг төлөвлөгөө"
                   : modal === "block"
@@ -1208,7 +1218,7 @@ export const Planner = () => {
             <label>
               <span>
                 <IconFlag size={15} />
-                Deadline — дуусгах эцсийн хугацаа
+                Эцсийн хугацаа
               </span>
               <input
                 required
@@ -1247,14 +1257,14 @@ export const Planner = () => {
             <fieldset className="dandar:reminder-fields">
               <legend>
                 <IconBell size={16} />
-                Deadline-аас хэдэн минутын өмнө сануулах вэ?
+                Эцсийн хугацаанаас хэдэн минутын өмнө сануулах вэ?
               </legend>
               <p>0 = яг хугацаанд · 60 = 1 цаг · 1440 = 1 өдөр</p>
               {task.reminders.map((m, i) => (
                 <div className="dandar:reminder-input" key={i}>
                   <input
                     type="number"
-                    aria-label={`Deadline сануулга ${i + 1}, минут`}
+                    aria-label={`Сануулга ${i + 1}, минут`}
                     min={0}
                     max={10080}
                     required
@@ -1313,7 +1323,7 @@ export const Planner = () => {
             <label className="dandar:toggle-row">
               <span>
                 <strong>Сануулга идэвхтэй</strong>
-                <small>Deadline болон суралцах сессийн мэдэгдэл</small>
+                <small>Эцсийн хугацаа болон суралцах сессийн мэдэгдэл</small>
               </span>
               <input
                 type="checkbox"
@@ -1595,7 +1605,8 @@ export const Planner = () => {
               </span>
               <span>
                 <IconFlag size={18} />
-                Deadline: {time(state.tasks.find((t) => t.id === selectedBlock.taskId)!.deadline)}
+                Эцсийн хугацаа:{" "}
+                {time(state.tasks.find((t) => t.id === selectedBlock.taskId)!.deadline)}
               </span>
               <span>
                 <IconBell size={18} />

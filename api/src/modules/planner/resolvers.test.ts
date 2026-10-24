@@ -99,7 +99,7 @@ test("applying a replacement preview preserves its energy and availability polic
 });
 test("planner requires authenticated tenant and checks platform permissions", async () => {
   const f = fixture();
-  await assert.rejects(() => plannerQueries.dandarPlanner(null, null, f.context("")), /Login/);
+  await assert.rejects(() => plannerQueries.dandarPlanner(null, null, f.context("")), /Нэвтэрч/);
   await plannerQueries.dandarPlanner(null, null, f.context("alice"));
   assert.ok(f.permissions.includes("dandarPlannerRead"));
   await update(f.context("alice"), 0, "task", task());
@@ -123,7 +123,7 @@ test("reminder claims are single-use and do not complete tasks", async () => {
   const id = `task1:${t.deadline}:60`;
   const claimed = await update(context, 1, "claimReminders", [id]);
   assert.equal((JSON.parse(claimed.data) as PlannerState).tasks[0]!.status, "todo");
-  await assert.rejects(() => update(context, 2, "claimReminders", [id]), /already handled/);
+  await assert.rejects(() => update(context, 2, "claimReminders", [id]), /аль хэдийн хүлээж авсан/);
   await update(context, 2, "preferences", {
     enabled: false,
     quietStart: 0,
@@ -132,7 +132,7 @@ test("reminder claims are single-use and do not complete tasks", async () => {
     focus: 25,
     dailyLimit: 180,
   });
-  await assert.rejects(() => update(context, 3, "claimReminders", []), /disabled/);
+  await assert.rejects(() => update(context, 3, "claimReminders", []), /унтраалттай/);
 });
 test("confirmation revalidates overlap and cannot partially save bad proposals", async () => {
   const f = fixture();
@@ -149,7 +149,7 @@ test("confirmation revalidates overlap and cannot partially save bad proposals",
   });
   await assert.rejects(
     () => update(context, 1, "confirm", [block("a", 0), block("b", 20)]),
-    /conflict/,
+    /давхцаж/,
   );
   const state = await plannerQueries.dandarPlanner(null, null, context);
   assert.equal(state.version, 1);
@@ -157,6 +157,6 @@ test("confirmation revalidates overlap and cannot partially save bad proposals",
   await update(context, 1, "confirm", [block("a", 0)]);
   await assert.rejects(
     () => update(context, 2, "block", { id: "a", status: "completed" }),
-    /Start the session/,
+    /Эхлээд сессээ/,
   );
 });

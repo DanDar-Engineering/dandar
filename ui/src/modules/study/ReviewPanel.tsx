@@ -253,8 +253,8 @@ export const ReviewPanel = () => {
             {shown ? (
               <>
                 <p className="dandar:text-sm dandar:text-muted-foreground">
-                  Хэр санаж чадсан бэ? Зөвхөн дараагийн давталтын цагийг тохируулна. Оноо, дүн
-                  байхгүй.
+                  Хэр сайн санасан бэ? Үнэлгээ зөвхөн дараагийн давталтын цагийг тогтооно, оноо
+                  дүн биш.
                 </p>
                 <div className="dandar:grid dandar:grid-cols-2 dandar:gap-2 dandar:sm:grid-cols-4">
                   {GRADES.map(({ grade: value, label, key, className }) => (
@@ -294,7 +294,7 @@ export const ReviewPanel = () => {
                 </Button>
                 <Button variant="outline" disabled={helping} onClick={() => ask("hint")}>
                   <IconBulb />
-                  Hint
+                  Сэжүүр
                 </Button>
                 <Button variant="outline" disabled={helping} onClick={() => ask("mnemonic")}>
                   Санах арга

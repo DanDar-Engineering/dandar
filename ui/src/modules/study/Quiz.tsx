@@ -92,10 +92,10 @@ export const Quiz = () => {
     return (
       <Card>
         <Card.Header>
-          <Card.Title>Тест горим</Card.Title>
+          <Card.Title>Тестийн горим</Card.Title>
           <Card.Description>
-            Өөрийн картаас 4 сонголттой асуулт гарна. Хамгийн их мартаж буй картууд эхэлж орно,
-            хариу бүр давтлагын хуваарьт тооцогдоно.
+            Өөрийн картаас 4 сонголттой асуулт гарна. Хамгийн их мартаж буй картууд эхэлж орох
+            бөгөөд хариулт бүр давтлагын хуваарьт тооцогдоно.
           </Card.Description>
         </Card.Header>
         <Card.Content className="dandar:flex dandar:flex-col dandar:gap-4">
@@ -138,7 +138,7 @@ export const Quiz = () => {
           </div>
           {empty ? (
             <p className="dandar:text-sm dandar:text-muted-foreground">
-              Тест үүсгэхэд дор хаяж өөр хариулттай 2 карт хэрэгтэй. Эхлээд карт нэмнэ үү.
+              Тест үүсгэхэд хариулт нь өөр өөр дор хаяж 2 карт хэрэгтэй. Эхлээд карт нэмнэ үү.
             </p>
           ) : null}
           <Button className="dandar:w-fit" onClick={start}>
@@ -176,7 +176,7 @@ export const Quiz = () => {
           <Card.Description>
             {wrong.length
               ? "Алдсан картууд ойрхон дахин давтагдана."
-              : "Бүгдийг зөв хариуллаа. Эдгээр картууд илүү хойш давтагдана."}
+              : "Бүгдийг зөв хариуллаа. Эдгээр карт дараа нь, илүү урт завсартай давтагдана."}
           </Card.Description>
         </Card.Header>
         <Card.Content className="dandar:flex dandar:flex-col dandar:gap-4">

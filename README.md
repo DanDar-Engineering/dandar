@@ -19,7 +19,7 @@ an erxes contact through `SelectCustomer` and `CustomersInline` from
 
 ## Gemma 4 (optional)
 
-The settings page has an "Ask Gemma 4" card (`ui/src/modules/ai/AskGemma.tsx`)
+The settings page has the "Pure AI туслах" chat (`ui/src/modules/ai/PureChat.tsx`)
 backed by `api/src/modules/ai/gemma.ts`. GraphQL: `dandarAiStatus` and the
 `dandarAsk(prompt)` mutation. Configure it in `.env`, then restart
 `pnpm run dev:api`:
@@ -85,6 +85,8 @@ a private gateway-only network and strip user/tenant headers at public ingress.
 | `pnpm run check`   | Type-check every part                           |
 | `pnpm run lint`    | oxlint                                          |
 | `pnpm run fmt`     | oxfmt                                           |
+| `pnpm run smoke`   | End-to-end check of every feature (running API) |
+| `pnpm run seed:demo` | Showcase data; see [demo/README.md](demo/README.md) |
 
 ## Deploy
 

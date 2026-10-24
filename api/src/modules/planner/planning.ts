@@ -15,7 +15,7 @@ export const windowsInput = z
   .max(28);
 export const capsInput = z
   .record(z.string().regex(/^\d{4}-\d{2}-\d{2}$/), z.number().int().min(0).max(480))
-  .refine((v) => Object.keys(v).length <= 31, "At most 31 daily limits");
+  .refine((v) => Object.keys(v).length <= 31, "Өдрийн хязгаар 31-ээс ихгүй байна");
 export const optionsInput = z.object({
   energy: energyInput.optional(),
   replacePlanned: z.boolean().default(false),
@@ -47,7 +47,7 @@ export function ruleRanking(state: PlannerState, energy: Energy): Ranking {
   return {
     order: [],
     breakMinutes: energyProfile(energy, state.preferences.focus).rest,
-    model: "Rule-based simulation",
+    model: "Дүрмийн тооцоолол",
     warnings: [],
   };
 }
@@ -93,9 +93,9 @@ export async function rankWithGemma(
   } catch {
     return {
       ...fallback,
-      model: "Rule-based fallback",
+      model: "Дүрмийн тооцоолол (Gemma холбогдоогүй)",
       warnings: [
-        "Gemma холболт эсвэл хариу боломжгүй. Сонгосон эрч хүчний түвшинд тохирсон дүрмийн тооцоолол харуулж байна.",
+        "Gemma-тай холбогдож чадсангүй. Сонгосон эрч хүчинд тохирсон дүрмийн тооцоолол харуулж байна.",
       ],
     };
   }

@@ -99,17 +99,17 @@ const TEXT_MAX_LENGTH = 20_000;
 
 export const assertImage = (mimeType: string, imageData: string) => {
   if (!IMAGE_TYPES.has(mimeType)) {
-    throw badInput("Upload a JPEG, PNG or WebP image");
+    throw badInput("JPEG, PNG эсвэл WebP зураг оруулна уу");
   }
   if (!imageData || imageData.length > MAX_IMAGE_CHARS || !BASE64.test(imageData)) {
-    throw badInput("The image is empty, too large or not base64");
+    throw badInput("Зураг хоосон, хэт том эсвэл гэмтсэн байна");
   }
 };
 
 const optionalText = (value: string | null | undefined, max: number, label: string) => {
   const text = value?.trim() ?? "";
   if (text.length > max) {
-    throw badInput(`${label} must be at most ${max} characters`);
+    throw badInput(`${label} ${max} тэмдэгтээс хэтрэхгүй байна`);
   }
 
   return text || undefined;
@@ -141,12 +141,12 @@ const toScanOutput = ({ imageData, ...scan }: ScanOutputSource) => ({
 
 const assertRecordId = (value: string, label: string) => {
   if (!RECORD_ID.test(value)) {
-    throw badInput(`Invalid ${label}`);
+    throw badInput(`${label} буруу байна`);
   }
 };
 
 const notFound = () =>
-  new GraphQLError("Material not found", { extensions: { code: "NOT_FOUND" } });
+  new GraphQLError("Материал олдсонгүй", { extensions: { code: "NOT_FOUND" } });
 
 type PageArgs = { limit?: number; offset?: number };
 
@@ -218,11 +218,11 @@ export const scanResolvers = {
 
       const title = args.title.trim();
       if (!title || title.length > TITLE_MAX_LENGTH) {
-        throw badInput(`Title must be 1–${TITLE_MAX_LENGTH} characters`);
+        throw badInput(`Гарчиг 1–${TITLE_MAX_LENGTH} тэмдэгт байна`);
       }
       const text = args.text.trim();
       if (!text || text.length > TEXT_MAX_LENGTH) {
-        throw badInput(`Text must be 1–${TEXT_MAX_LENGTH} characters`);
+        throw badInput(`Уншсан текст 1–${TEXT_MAX_LENGTH} тэмдэгт байна`);
       }
       if (args.teacherId) {
         assertRecordId(args.teacherId, "teacherId");
@@ -243,10 +243,10 @@ export const scanResolvers = {
         text,
         kind: args.kind,
         title,
-        subject: optionalText(args.subject, SUBJECT_MAX_LENGTH, "Subject"),
+        subject: optionalText(args.subject, SUBJECT_MAX_LENGTH, "Хичээлийн нэр"),
         summary:
           args.kind === "note"
-            ? optionalText(args.summary, SUMMARY_MAX_LENGTH, "Summary")
+            ? optionalText(args.summary, SUMMARY_MAX_LENGTH, "Хураангуй")
             : undefined,
         status,
         sentAt: status === "sent" ? new Date() : undefined,
@@ -286,7 +286,7 @@ export const scanResolvers = {
 
       const text = comment.trim();
       if (!text || text.length > COMMENT_MAX_LENGTH) {
-        throw badInput(`Write a comment of 1–${COMMENT_MAX_LENGTH} characters`);
+        throw badInput(`Хариугаа 1–${COMMENT_MAX_LENGTH} тэмдэгтэд багтааж бичнэ үү`);
       }
 
       const scan = await context.models.Scans.review(_id, userId, text);

@@ -119,7 +119,7 @@ const CardRow = ({ card, decks }: { card: EditableCard; decks: string[] }) => {
         <span className="dandar:font-medium">{card.front}</span>
         <span className="dandar:text-sm dandar:text-muted-foreground">{card.back}</span>
         <span className="dandar:text-xs dandar:text-muted-foreground">
-          {card.deck} · санах {card.retention}% · дараагийн{" "}
+          {card.deck} · санах магадлал {card.retention}% · дараагийн давталт{" "}
           {new Date(card.dueAt).toLocaleString("mn-MN")}
         </span>
       </div>

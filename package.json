@@ -10,7 +10,9 @@
     "build": "pnpm run codegen && pnpm --filter dandar_api build && pnpm --filter dandar_ui build",
     "check": "pnpm run codegen && pnpm --filter dandar_api check && pnpm --filter dandar_ui check",
     "lint": "oxlint",
-    "fmt": "oxfmt"
+    "fmt": "oxfmt",
+    "smoke": "pnpm --filter dandar_api smoke",
+    "seed:demo": "pnpm --filter dandar_api seed:demo --"
   },
   "devDependencies": {
     "oxfmt": "^0.71.0",

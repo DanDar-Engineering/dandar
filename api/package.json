@@ -8,7 +8,9 @@
     "start": "node --env-file-if-exists=../.env dist/main.js",
     "check": "tsc --noEmit",
     "test": "tsx --test \"src/**/*.test.ts\"",
-    "schema:print": "tsx src/print-schema.ts"
+    "schema:print": "tsx src/print-schema.ts",
+    "smoke": "tsx --env-file-if-exists=../.env src/dev/smokeTest.ts",
+    "seed:demo": "tsx --env-file-if-exists=../.env src/dev/seedDemo.ts"
   },
   "dependencies": {
     "erxes-api-shared": "npm:@erxes/api-shared@3.3.4",

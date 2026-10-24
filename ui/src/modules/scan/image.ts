@@ -43,7 +43,7 @@ export const prepareImage = async (file: File): Promise<PreparedImage> => {
 
   const context = canvas.getContext("2d");
   if (!context) {
-    throw new Error("Энэ browser зураг боловсруулж чадахгүй байна.");
+    throw new Error("Энэ хөтөч зураг боловсруулж чадахгүй байна.");
   }
   // PNG transparency would turn black in JPEG.
   context.fillStyle = "#ffffff";

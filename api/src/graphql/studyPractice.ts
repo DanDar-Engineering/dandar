@@ -78,7 +78,7 @@ export const studyPracticeResolvers = {
       const userId = requireTenantUser(context);
       await context.checkPermission(STUDY_READ);
       if (!Number.isInteger(size) || size < 1 || size > 30)
-        throw badInput("Quiz size must be 1–30");
+        throw badInput("Асуултын тоо 1–30 байна");
       // Wrong choices come from every deck, so the pool is not narrowed by deck.
       const docs = await context.models.StudyCards.find({ userId })
         .limit(QUIZ_POOL)
@@ -150,9 +150,9 @@ export const studyPracticeResolvers = {
       const userId = requireTenantUser(context);
       await context.checkPermission(STUDY_WRITE);
       assertRecordId(cardId, "cardId");
-      if (choice.length > CHOICE_MAX_LENGTH) throw badInput("Choice is too long");
+      if (choice.length > CHOICE_MAX_LENGTH) throw badInput("Сонголт хэт урт байна");
       const doc = await context.models.StudyCards.findOne({ _id: cardId, userId });
-      if (!doc) throw badInput("Card not found");
+      if (!doc) throw badInput("Карт олдсонгүй");
 
       const correct = isCorrectChoice(choice, doc.back);
       const grade = correct ? "know" : "forgot";

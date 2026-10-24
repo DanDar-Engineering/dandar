@@ -68,7 +68,7 @@ export type Recording = {
 
 export const startRecording = async (): Promise<Recording> => {
   if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") {
-    throw new Error("Энэ browser микрофоноор бичлэг хийж чадахгүй байна.");
+    throw new Error("Энэ хөтөч микрофоноор бичлэг хийж чадахгүй байна.");
   }
   const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
   const recorder = new MediaRecorder(stream);

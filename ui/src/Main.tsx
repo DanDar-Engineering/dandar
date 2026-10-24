@@ -25,7 +25,7 @@ const SettingsPage = lazy(() =>
 // it. It resolves the component by the PascalCase expose name.
 export const Dandar = () => (
   <AppLayout id={manifest.name} title={<PureLogo size="md" />} sidebar={<Navigation />}>
-    <Suspense fallback={<div role="status">Loading…</div>}>
+    <Suspense fallback={<div role="status">Ачаалж байна…</div>}>
       <Routes>
         <Route index element={<IndexPage />} />
         <Route path="scans" element={<ScansPage />} />

@@ -30,7 +30,7 @@ export const browserDictationSupported = () =>
 const ERRORS: Record<string, string> = {
   "not-allowed": "Микрофоны зөвшөөрөл өгөөгүй байна.",
   "no-speech": "Яриа сонсогдсонгүй. Дахин оролдоно уу.",
-  "language-not-supported": "Энэ browser монгол яриа танихгүй байна.",
+  "language-not-supported": "Энэ хөтөч монгол яриа танихгүй байна.",
   network: "Яриа таних үйлчилгээнд холбогдож чадсангүй.",
 };
 
@@ -39,7 +39,7 @@ export type BrowserDictation = { stop: () => Promise<string> };
 export const startBrowserDictation = (onError: (message: string) => void): BrowserDictation => {
   const Constructor = getConstructor();
   if (!Constructor) {
-    throw new Error("Энэ browser яриа таних боломжгүй. Chrome эсвэл Edge ашиглана уу.");
+    throw new Error("Энэ хөтөч яриа таних боломжгүй. Chrome эсвэл Edge ашиглана уу.");
   }
   const recognition = new Constructor();
   recognition.lang = "mn-MN";

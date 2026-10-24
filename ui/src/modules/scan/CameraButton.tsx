@@ -18,7 +18,7 @@ const liveCameraAvailable = () =>
   Boolean(navigator.mediaDevices?.getUserMedia);
 
 const CAMERA_ERRORS: Record<string, string> = {
-  NotAllowedError: "Камерын зөвшөөрөл өгөөгүй байна. Browser-ийн тохиргооноос зөвшөөрнө үү.",
+  NotAllowedError: "Камерын зөвшөөрөл өгөөгүй байна. Хөтчийн тохиргооноос зөвшөөрнө үү.",
   NotFoundError: "Камер олдсонгүй.",
   NotReadableError: "Камерыг өөр програм ашиглаж байна.",
 };

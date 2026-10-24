@@ -5,7 +5,7 @@ import { Button, Card } from "erxes-ui";
 import { gql } from "~/gql";
 import { PureLogoIcon } from "../../components/PureLogo";
 
-const AI_STATUS_QUERY = gql(`
+export const AI_STATUS_QUERY = gql(`
   query dandarAiStatus {
     dandarAiStatus {
       provider
@@ -25,6 +25,7 @@ const ASK_MUTATION = gql(`
   }
 `);
 
+// Mirrors MAX_PROMPT_LENGTH in api/src/modules/ai/gemma.ts.
 const MAX_PROMPT_LENGTH = 4000;
 
 interface ChatMessage {
@@ -85,7 +86,7 @@ export const PureChat = () => {
           <div className="dandar:flex dandar:items-center dandar:justify-between dandar:gap-2">
             <Card.Title className="dandar:flex dandar:items-center dandar:gap-2">
               <PureLogoIcon size="md" />
-              <span>Ask Pure</span>
+              <span>Pure AI туслах</span>
             </Card.Title>
             {isConfigured && (
               <span className="pure-badge pure-badge-primary">
@@ -96,20 +97,20 @@ export const PureChat = () => {
           <Card.Description>
             {!isConfigured
               ? status?.provider === "gemini"
-                ? "Set GEMINI_API_KEY in the plugin .env and restart the API."
-                : "Set AI_BASE_URL in the plugin .env and restart the API."
-              : "Асуултаа асуу. Pure нь сургалтын туслахаар хариулна."}
+                ? "Plugin-ий .env файлд GEMINI_API_KEY-г тохируулаад API-г дахин эхлүүлнэ үү."
+                : "Plugin-ий .env файлд AI_BASE_URL-г тохируулаад API-г дахин эхлүүлнэ үү."
+              : "Хичээлийн асуултаа бичээрэй. Pure алхам алхмаар тайлбарлаж өгнө."}
           </Card.Description>
         </Card.Header>
 
         <Card.Content className="dandar:flex dandar:flex-col dandar:gap-4">
           {/* Chat Messages Display */}
-          <div className="dandar:h-96 dandar:overflow-y-auto dandar:space-y-4 dandar:rounded-lg dandar:bg-gray-50 dandar:p-4">
+          <div className="dandar:h-96 dandar:overflow-y-auto dandar:space-y-4 dandar:rounded-lg dandar:bg-muted dandar:p-4">
             {messages.length === 0 ? (
               <div className="dandar:flex dandar:h-full dandar:items-center dandar:justify-center dandar:text-center">
                 <div className="dandar:text-muted-foreground">
                   <PureLogoIcon size="lg" />
-                  <p className="dandar:mt-4 dandar:text-sm">Өнөө өдрийн эхний асуултаа асуу</p>
+                  <p className="dandar:mt-4 dandar:text-sm">Өнөөдрийн эхний асуултаа асуугаарай</p>
                 </div>
               </div>
             ) : (
@@ -161,6 +162,7 @@ export const PureChat = () => {
               <div className="dandar:flex dandar:gap-2">
                 <input
                   type="text"
+                  aria-label="Pure-д асуух асуулт"
                   placeholder="Жишээ нь: Пифагорын теоремыг энгийнээр тайлбарлаад..."
                   value={prompt}
                   maxLength={MAX_PROMPT_LENGTH}
@@ -172,6 +174,7 @@ export const PureChat = () => {
                   type="submit"
                   disabled={loading || !question}
                   className="pure-btn pure-btn-primary"
+                  aria-label="Илгээх"
                 >
                   <IconSend size={18} />
                 </Button>
@@ -182,7 +185,7 @@ export const PureChat = () => {
             </form>
           ) : (
             <div className="dandar:rounded dandar:bg-warning/10 dandar:p-4 dandar:text-sm dandar:text-warning">
-              Pure байгуулалтгүй байна. API коноигурацийг шалгана уу.
+              Pure AI тохируулагдаагүй байна. API-ийн тохиргоог шалгана уу.
             </div>
           )}
         </Card.Content>

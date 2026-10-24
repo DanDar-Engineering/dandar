@@ -31,7 +31,7 @@ export const useSpeak = () => {
         const result = await speakMutation({ variables: { text: speech } });
         const url = result.data?.dandarSpeak.audioUrl;
         if (!url) {
-          throw new Error("Chimege хоосон хариу өглөө");
+          throw new Error("Дуу унших үйлчилгээ хоосон хариу өглөө");
         }
         audio.current?.pause();
         audio.current = new Audio(url);

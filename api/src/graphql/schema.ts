@@ -133,11 +133,11 @@ export const resolvers = {
     },
     dandarAsk: async (_parent: unknown, { prompt }: { prompt: string }, { user }: Context) => {
       if (!user?._id) {
-        throw new GraphQLError("Login required", { extensions: { code: "UNAUTHENTICATED" } });
+        throw new GraphQLError("Нэвтэрч орно уу", { extensions: { code: "UNAUTHENTICATED" } });
       }
       const question = prompt.trim();
       if (!question || question.length > MAX_PROMPT_LENGTH) {
-        throw new GraphQLError(`Write a question of 1–${MAX_PROMPT_LENGTH} characters`, {
+        throw new GraphQLError(`Асуултаа 1–${MAX_PROMPT_LENGTH} тэмдэгтэд багтааж бичнэ үү`, {
           extensions: { code: "BAD_USER_INPUT" },
         });
       }

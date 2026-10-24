@@ -127,7 +127,7 @@ export const StudySettings = () => {
               onCheckedChange={(checked) => update({ examAlerts: checked })}
             />
           </Row>
-          <Row title="Сануулах цаг" description="Хоёр сануулга хоёулаа энэ цагт ирнэ">
+          <Row title="Сануулах цаг" description="Хоёр төрлийн сануулга хоёулаа энэ цагт ирнэ">
             <HourSelect
               id="dandar-reminder-hour"
               value={form.reminderHour}
@@ -141,9 +141,9 @@ export const StudySettings = () => {
         <Card.Header>
           <Card.Title className="dandar:flex dandar:items-center dandar:gap-2">
             <IconMoon className="dandar:size-5" />
-            Тайван цаг
+            Чимээгүй цаг
           </Card.Title>
-          <Card.Description>Энэ хооронд ямар ч мэдэгдэл ирэхгүй.</Card.Description>
+          <Card.Description>Энэ хооронд давтлагын мэдэгдэл ирэхгүй.</Card.Description>
         </Card.Header>
         <Card.Content className="dandar:flex dandar:flex-wrap dandar:items-end dandar:gap-4">
           <div className="dandar:flex dandar:flex-col dandar:gap-2">
@@ -167,7 +167,7 @@ export const StudySettings = () => {
 
       {clash ? (
         <p role="alert" className="dandar:text-sm dandar:text-destructive">
-          Сануулах цаг тайван цаг дотор байна. Өөр цаг сонгоно уу.
+          Сануулах цаг чимээгүй цаг дотор байна. Өөр цаг сонгоно уу.
         </p>
       ) : null}
       <Button

@@ -51,6 +51,24 @@ const readJson = async <T>(response: Response): Promise<T> => {
   }
 };
 
+// Gemini and hosted endpoints sometimes answer 500/503 ("Internal error
+// encountered") or 429 for a moment; one quick retry hides that from the student.
+const TRANSIENT_STATUSES = new Set([429, 500, 502, 503, 504]);
+const RETRY_DELAY_MS = 1500;
+
+const post = async (url: string, init: RequestInit, timeoutMs: number) => {
+  for (let attempt = 1; ; attempt += 1) {
+    const response = await fetch(url, {
+      ...init,
+      method: "POST",
+      signal: AbortSignal.timeout(timeoutMs),
+    });
+    if (attempt >= 2 || !TRANSIENT_STATUSES.has(response.status)) return response;
+    await response.body?.cancel();
+    await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS));
+  }
+};
+
 type GeminiResponse = {
   candidates?: { content?: { parts?: { text?: string; thought?: boolean }[] } }[];
   promptFeedback?: { blockReason?: string };
@@ -63,7 +81,9 @@ const askGemini = async (
   { image, temperature }: CallOptions,
 ): Promise<string> => {
   if (!env.GEMINI_API_KEY) {
-    throw new AiNotConfiguredError("GEMINI_API_KEY is not set in the plugin .env");
+    throw new AiNotConfiguredError(
+      "Gemma 4 тохируулаагүй байна: plugin-ий .env файлд GEMINI_API_KEY-г тохируулаад API-г дахин эхлүүлнэ үү",
+    );
   }
 
   const parts = [
@@ -71,18 +91,17 @@ const askGemini = async (
     { text: prompt },
   ];
 
-  const response = await fetch(
+  const response = await post(
     `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(env.AI_MODEL)}:generateContent`,
     {
-      method: "POST",
       headers: { "Content-Type": "application/json", "x-goog-api-key": env.GEMINI_API_KEY },
       body: JSON.stringify({
         systemInstruction: { parts: [{ text: system }] },
         contents: [{ role: "user", parts }],
         ...(temperature === undefined ? {} : { generationConfig: { temperature } }),
       }),
-      signal: AbortSignal.timeout(image ? VISION_TIMEOUT_MS : TIMEOUT_MS),
     },
+    image ? VISION_TIMEOUT_MS : TIMEOUT_MS,
   );
   const data = await readJson<GeminiResponse>(response);
 
@@ -112,7 +131,9 @@ const askOpenAiCompatible = async (
   { image, temperature }: CallOptions,
 ): Promise<string> => {
   if (!env.AI_BASE_URL) {
-    throw new AiNotConfiguredError("AI_BASE_URL is not set in the plugin .env");
+    throw new AiNotConfiguredError(
+      "Gemma 4 тохируулаагүй байна: plugin-ий .env файлд AI_BASE_URL-г тохируулаад API-г дахин эхлүүлнэ үү",
+    );
   }
 
   // Ollama and vLLM accept images as base64 data URLs in image_url parts.
@@ -123,22 +144,24 @@ const askOpenAiCompatible = async (
       ]
     : prompt;
 
-  const response = await fetch(`${env.AI_BASE_URL.replace(/\/+$/, "")}/chat/completions`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      ...(env.AI_API_KEY ? { Authorization: `Bearer ${env.AI_API_KEY}` } : {}),
+  const response = await post(
+    `${env.AI_BASE_URL.replace(/\/+$/, "")}/chat/completions`,
+    {
+      headers: {
+        "Content-Type": "application/json",
+        ...(env.AI_API_KEY ? { Authorization: `Bearer ${env.AI_API_KEY}` } : {}),
+      },
+      body: JSON.stringify({
+        model: env.AI_MODEL,
+        messages: [
+          { role: "system", content: system },
+          { role: "user", content },
+        ],
+        ...(temperature === undefined ? {} : { temperature }),
+      }),
     },
-    body: JSON.stringify({
-      model: env.AI_MODEL,
-      messages: [
-        { role: "system", content: system },
-        { role: "user", content },
-      ],
-      ...(temperature === undefined ? {} : { temperature }),
-    }),
-    signal: AbortSignal.timeout(image ? VISION_TIMEOUT_MS : TIMEOUT_MS),
-  });
+    image ? VISION_TIMEOUT_MS : TIMEOUT_MS,
+  );
   const data = await readJson<ChatCompletionResponse>(response);
 
   if (!response.ok) {
@@ -160,7 +183,7 @@ export const askGemma = async (
       : await askOpenAiCompatible(system, prompt, options);
 
   if (!text) {
-    throw new Error("The model returned an empty answer");
+    throw new Error("Gemma хоосон хариу буцаалаа");
   }
 
   return { text, model: env.AI_MODEL, provider: env.AI_PROVIDER };

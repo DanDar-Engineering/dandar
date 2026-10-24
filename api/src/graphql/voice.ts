@@ -46,7 +46,7 @@ const toVoiceError = (error: unknown) => {
   }
 
   return new GraphQLError(
-    `Voice request failed: ${error instanceof Error ? error.message : String(error)}`,
+    `Дуу хоолойн үйлчилгээ хариу өгсөнгүй: ${error instanceof Error ? error.message : String(error)}`,
     { extensions: { code: "VOICE_PROVIDER_ERROR" } },
   );
 };
@@ -61,7 +61,7 @@ export const voiceResolvers = {
       requireTenantUser(context);
       const speech = text.trim();
       if (!speech || speech.length > MAX_SPEAK_LENGTH) {
-        throw badInput(`Text must be 1–${MAX_SPEAK_LENGTH} characters`);
+        throw badInput(`Унших текст 1–${MAX_SPEAK_LENGTH} тэмдэгт байна`);
       }
 
       try {
@@ -78,11 +78,11 @@ export const voiceResolvers = {
     ) => {
       requireTenantUser(context);
       if (!audioData || audioData.length > MAX_AUDIO_CHARS || !BASE64.test(audioData)) {
-        throw badInput("The recording is empty, longer than 30 seconds or not base64");
+        throw badInput("Бичлэг хоосон, 30 секундээс урт эсвэл гэмтсэн байна");
       }
       const wav = Buffer.from(audioData, "base64");
       if (wav.subarray(0, 4).toString("ascii") !== "RIFF") {
-        throw badInput("The recording must be a WAV file");
+        throw badInput("Бичлэг WAV форматтай байх ёстой");
       }
 
       try {

@@ -74,7 +74,7 @@ const OptionsForm = ({
   onChange: (next: Options) => void;
 }) => (
   <div className="dandar:flex dandar:flex-col dandar:gap-4 dandar:rounded-lg dandar:border dandar:border-border dandar:p-4">
-    <span className="dandar:text-sm dandar:font-medium">Үүсгэлтийн тохиргоо</span>
+    <span className="dandar:text-sm dandar:font-medium">Карт үүсгэх тохиргоо</span>
     <Choice
       label="Картын тоо"
       value={options.count}
@@ -110,7 +110,7 @@ const OptionsForm = ({
       label="Хэл"
       value={options.lang}
       items={[
-        ["auto", "Материалын"],
+        ["auto", "Материалын хэлээр"],
         ["mn", "Монгол"],
         ["en", "English"],
       ]}

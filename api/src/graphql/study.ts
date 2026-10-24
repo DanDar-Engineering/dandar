@@ -296,24 +296,24 @@ const toExamOutput = async (context: Context, userId: string, deck: string, exam
 const cleanText = (value: string, label: string, max = CARD_TEXT_MAX_LENGTH) => {
   const text = value.trim();
   if (!text || text.length > max) {
-    throw badInput(`${label} must be 1–${max} characters`);
+    throw badInput(`${label} 1–${max} тэмдэгт байна`);
   }
 
   return text;
 };
 
-const cleanDeck = (value: string) => cleanText(value, "Deck", DECK_MAX_LENGTH);
+const cleanDeck = (value: string) => cleanText(value, "Багцын нэр", DECK_MAX_LENGTH);
 
 export const assertRecordId = (value: string, label: string) => {
   if (!RECORD_ID.test(value)) {
-    throw badInput(`Invalid ${label}`);
+    throw badInput(`${label} буруу байна`);
   }
 };
 
 const examTimestamp = (date: string) => {
   const at = DATE.test(date) ? Date.parse(`${date}T08:00:00`) : NaN;
   if (!Number.isFinite(at) || at <= Date.now()) {
-    throw badInput("Use a future date as YYYY-MM-DD");
+    throw badInput("Ирээдүйн огноо сонгоно уу (ЖЖЖЖ-СС-ӨӨ)");
   }
 
   return at;
@@ -331,12 +331,12 @@ type OptionsInput = {
 const toCardOptions = (input: OptionsInput | null | undefined): CardOptions => {
   const count = input?.count ?? CARD_COUNT.default;
   if (!Number.isInteger(count) || count < CARD_COUNT.min || count > CARD_COUNT.max) {
-    throw badInput(`Card count must be ${CARD_COUNT.min}–${CARD_COUNT.max}`);
+    throw badInput(`Картын тоо ${CARD_COUNT.min}–${CARD_COUNT.max} байна`);
   }
   const focus = input?.focus?.trim() ?? "";
   const instructions = input?.instructions?.trim() ?? "";
   if (focus.length > FOCUS_MAX_LENGTH || instructions.length > INSTRUCTIONS_MAX_LENGTH) {
-    throw badInput("Focus or instructions are too long");
+    throw badInput("Онцлох сэдэв эсвэл нэмэлт хүсэлт хэт урт байна");
   }
 
   return {
@@ -356,7 +356,7 @@ const ownScan = async (context: Context, userId: string, scanId: string) => {
   assertRecordId(scanId, "scanId");
   const scan = await context.models.Scans.findVisible(scanId, userId);
   if (!scan || scan.studentId !== userId) {
-    throw badInput("Material not found");
+    throw badInput("Материал олдсонгүй");
   }
 
   return scan;
@@ -365,7 +365,7 @@ const ownScan = async (context: Context, userId: string, scanId: string) => {
 const ownScans = async (context: Context, userId: string, scanIds: string[] | null | undefined) => {
   const ids = [...new Set(scanIds ?? [])];
   if (ids.length > MAX_DRAFT_SCANS) {
-    throw badInput(`Pick at most ${MAX_DRAFT_SCANS} materials at a time`);
+    throw badInput(`Нэг дор ${MAX_DRAFT_SCANS} хүртэл материал сонгоно уу`);
   }
 
   return Promise.all(ids.map((id) => ownScan(context, userId, id)));
@@ -373,7 +373,7 @@ const ownScans = async (context: Context, userId: string, scanIds: string[] | nu
 
 const HOUR = (value: number, label: string) => {
   if (!Number.isInteger(value) || value < 0 || value > 23) {
-    throw badInput(`${label} must be an hour 0–23`);
+    throw badInput(`${label} 0–23 цагийн хооронд байна`);
   }
 
   return value;
@@ -515,8 +515,8 @@ export const studyResolvers = {
       const doc = await context.models.StudyCards.create({
         userId,
         topicId: deck,
-        front: cleanText(args.front, "Front"),
-        back: cleanText(args.back, "Back"),
+        front: cleanText(args.front, "Асуулт"),
+        back: cleanText(args.back, "Хариулт"),
         stability: state.stability,
         dueAt: new Date(state.dueAt),
       });
@@ -538,9 +538,9 @@ export const studyResolvers = {
       const userId = requireTenantUser(context);
       await context.checkPermission(STUDY_WRITE);
       assertRecordId(_id, "_id");
-      if (!GRADES.includes(grade)) throw badInput("Unknown grade");
+      if (!GRADES.includes(grade)) throw badInput("Үнэлгээ буруу байна");
       const doc = await context.models.StudyCards.findOne({ _id, userId });
-      if (!doc) throw badInput("Card not found");
+      if (!doc) throw badInput("Карт олдсонгүй");
 
       const now = Date.now();
       const exams = await examTimes(context, userId);
@@ -584,7 +584,7 @@ export const studyResolvers = {
 
       const notes = args.notes?.trim() ?? "";
       if (notes.length > NOTES_MAX_LENGTH) {
-        throw badInput(`Notes must be at most ${NOTES_MAX_LENGTH} characters`);
+        throw badInput(`Тэмдэглэл ${NOTES_MAX_LENGTH} тэмдэгтээс хэтрэхгүй байна`);
       }
       let upload: AiImage | undefined;
       if (args.mimeType || args.imageData) {
@@ -623,7 +623,7 @@ export const studyResolvers = {
           });
         }
       }
-      if (!calls.length) throw badInput("Add notes, a photo or pick a scanned material");
+      if (!calls.length) throw badInput("Тэмдэглэл бичих, зураг оруулах эсвэл уншуулсан материал сонгоно уу");
 
       const perCall = Math.max(CARD_COUNT.min, Math.ceil(options.count / calls.length));
       const settled = await Promise.allSettled(
@@ -646,7 +646,7 @@ export const studyResolvers = {
 
       const draft = mergeDrafts(drafts, MAX_SAVED_CARDS);
       if (!draft.cards.length) {
-        throw badInput("Gemma could not make cards from this material. Try again.");
+        throw badInput("Gemma энэ материалаас карт гаргаж чадсангүй. Дахин оролдоно уу.");
       }
       const scanDeck = scans[0] ? scans[0].subject || scans[0].title : "";
 
@@ -670,11 +670,11 @@ export const studyResolvers = {
       await context.checkPermission(STUDY_WRITE);
       const deck = cleanDeck(args.deck);
       if (args.cards.length < 1 || args.cards.length > MAX_SAVED_CARDS) {
-        throw badInput(`Save 1–${MAX_SAVED_CARDS} cards at a time`);
+        throw badInput(`Нэг дор 1–${MAX_SAVED_CARDS} карт хадгална`);
       }
       const cards = args.cards.map((card) => ({
-        front: cleanText(card.front, "Front"),
-        back: cleanText(card.back, "Back"),
+        front: cleanText(card.front, "Асуулт"),
+        back: cleanText(card.back, "Хариулт"),
       }));
       const scanIds = (await ownScans(context, userId, args.scanIds)).map((scan) => scan._id);
 
@@ -727,7 +727,7 @@ export const studyResolvers = {
       const name = cleanDeck(deck);
       const examAt = examTimestamp(date);
       if (!(await context.models.StudyCards.exists({ userId, topicId: name }))) {
-        throw badInput("Deck not found");
+        throw badInput("Багц олдсонгүй");
       }
       await context.models.StudyExams.updateOne(
         { userId, deck: name },
@@ -765,13 +765,13 @@ export const studyResolvers = {
       await context.checkPermission(STUDY_WRITE);
       const settings: ReminderSettings = {
         reviewReminder: input.reviewReminder,
-        reminderHour: HOUR(input.reminderHour, "Reminder hour"),
+        reminderHour: HOUR(input.reminderHour, "Сануулах цаг"),
         examAlerts: input.examAlerts,
-        quietStart: HOUR(input.quietStart, "Quiet start"),
-        quietEnd: HOUR(input.quietEnd, "Quiet end"),
+        quietStart: HOUR(input.quietStart, "Чимээгүй цагийн эхлэл"),
+        quietEnd: HOUR(input.quietEnd, "Чимээгүй цагийн төгсгөл"),
       };
       if (isQuietHour(settings.reminderHour, settings.quietStart, settings.quietEnd)) {
-        throw badInput("The reminder hour falls inside the quiet hours");
+        throw badInput("Сануулах цаг чимээгүй цаг дотор байна. Өөр цаг сонгоно уу");
       }
       await context.models.StudySettings.updateOne(
         { userId },
@@ -794,13 +794,13 @@ export const studyResolvers = {
         {
           $set: {
             topicId: cleanDeck(args.deck),
-            front: cleanText(args.front, "Front"),
-            back: cleanText(args.back, "Back"),
+            front: cleanText(args.front, "Асуулт"),
+            back: cleanText(args.back, "Хариулт"),
           },
         },
         { new: true },
       ).lean<IStudyCardDocument>();
-      if (!doc) throw badInput("Card not found");
+      if (!doc) throw badInput("Карт олдсонгүй");
 
       return toCardOutput(doc, Date.now());
     },
@@ -850,12 +850,12 @@ export const studyResolvers = {
       const userId = requireTenantUser(context);
       await context.checkPermission(STUDY_READ);
       assertRecordId(_id, "_id");
-      if (!HELP_MODES.includes(mode)) throw badInput("Unknown mode");
+      if (!HELP_MODES.includes(mode)) throw badInput("Тусламжийн төрөл буруу байна");
       const doc = await context.models.StudyCards.findOne({
         _id,
         userId,
       }).lean<IStudyCardDocument>();
-      if (!doc) throw badInput("Card not found");
+      if (!doc) throw badInput("Карт олдсонгүй");
 
       try {
         return (

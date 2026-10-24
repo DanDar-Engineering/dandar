@@ -10,10 +10,10 @@ export const badInput = (message: string) =>
 
 export const requireTenantUser = ({ user, subdomain }: Context) => {
   if (!user?._id) {
-    throw new GraphQLError("Login required", { extensions: { code: "UNAUTHENTICATED" } });
+    throw new GraphQLError("Нэвтэрч орно уу", { extensions: { code: "UNAUTHENTICATED" } });
   }
   if (!subdomain) {
-    throw new GraphQLError("Tenant required", { extensions: { code: "FORBIDDEN" } });
+    throw new GraphQLError("Байгууллага тодорхойгүй байна", { extensions: { code: "FORBIDDEN" } });
   }
 
   return user._id;
@@ -28,7 +28,7 @@ export const assertPage = (limit: number, offset: number) => {
     offset < 0 ||
     offset > 10_000
   ) {
-    throw badInput("Use limit 1–100 and offset 0–10000");
+    throw badInput("Хуудаслалт буруу: limit 1–100, offset 0–10000 байна");
   }
 };
 
@@ -42,7 +42,7 @@ export const toAiError = (error: unknown) => {
   }
 
   return new GraphQLError(
-    `Gemma request failed: ${error instanceof Error ? error.message : String(error)}`,
+    `Gemma 4-өөс хариу авч чадсангүй: ${error instanceof Error ? error.message : String(error)}`,
     { extensions: { code: "AI_PROVIDER_ERROR" } },
   );
 };

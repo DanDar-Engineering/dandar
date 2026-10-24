@@ -30,16 +30,16 @@ const bad = (message: string): never => {
   throw new GraphQLError(message, { extensions: { code: "BAD_USER_INPUT" } });
 };
 const parse = (text: string): unknown => {
-  if (text.length > 100000) return bad("Input too large");
+  if (text.length > 100000) return bad("Өгөгдөл хэт том байна");
   try {
     return JSON.parse(text) as unknown;
   } catch {
-    return bad("Invalid JSON");
+    return bad("Өгөгдлийн формат буруу байна");
   }
 };
 export async function getState(context: Context, write = false) {
   if (!context.user?._id || !context.subdomain)
-    throw new GraphQLError("Login and tenant required", {
+    throw new GraphQLError("Нэвтэрч орно уу", {
       extensions: { code: "UNAUTHENTICATED" },
     });
   await context.checkPermission(write ? "dandarPlannerWrite" : "dandarPlannerRead");
@@ -92,10 +92,10 @@ export const plannerMutations = {
     const state = await getState(context, true);
     const w = windowsInput.safeParse(parse(windows));
     const opts = optionsInput.safeParse(options ? parse(options) : {});
-    if (!w.success || !opts.success) return bad("Invalid planning options");
+    if (!w.success || !opts.success) return bad("Төлөвлөлтийн тохиргоо буруу байна");
     validateWindows(w.data);
     if (!state.tasks.some((t) => t.status !== "completed"))
-      return bad("Add an unfinished task first");
+      return bad("Эхлээд дуусаагүй даалгавар нэмнэ үү");
     const energy = opts.data.energy ?? state.preferences.energy ?? "normal";
     const ranking = await rankWithGemma(state, w.data, energy);
     return makePlan(state, w.data, energy, opts.data.replacePlanned, opts.data.dailyCaps, ranking);
@@ -112,7 +112,7 @@ export const plannerMutations = {
     const { windows, options, candidate } = request.data;
     validateWindows(windows);
     if (candidate && !state.tasks.some((t) => t.id === candidate.id) && state.tasks.length >= 100)
-      return bad("Maximum 100 tasks");
+      return bad("Хамгийн ихдээ 100 даалгавар нэмэх боломжтой");
     const energy = options.energy ?? state.preferences.energy ?? "normal";
     const ranking = candidate
       ? ruleRanking(state, energy)
@@ -133,10 +133,10 @@ export const plannerMutations = {
     const action = args.action;
     if (action === "task") {
       const parsed = taskInput.safeParse(data);
-      if (!parsed.success) return bad("Invalid task fields");
+      if (!parsed.success) return bad("Даалгаврын мэдээллийг шалгана уу");
       const task = parsed.data;
       const old = state.tasks.find((t) => t.id === task.id);
-      if (!old && state.tasks.length >= 100) return bad("Maximum 100 tasks");
+      if (!old && state.tasks.length >= 100) return bad("Хамгийн ихдээ 100 даалгавар нэмэх боломжтой");
       if (
         old &&
         state.blocks.some(
@@ -147,7 +147,9 @@ export const plannerMutations = {
             Date.parse(b.end) > Date.parse(task.deadline),
         )
       )
-        return bad("Move or mark conflicting sessions missed before shortening the deadline");
+        return bad(
+          "Эцсийн хугацааг урагшлуулахаас өмнө түүнээс хойш орсон сессүүдийг шилжүүлэх эсвэл тасалдсан гэж тэмдэглэнэ үү",
+        );
       state.tasks = [...state.tasks.filter((t) => t.id !== task.id), task];
       if (task.status === "completed")
         state.blocks = state.blocks.filter((b) => b.taskId !== task.id || b.status === "completed");
@@ -157,11 +159,11 @@ export const plannerMutations = {
       state.blocks = state.blocks.filter((b) => b.taskId !== id);
     } else if (action === "preferences") {
       const parsed = preferencesInput.safeParse(data);
-      if (!parsed.success) return bad("Invalid preferences");
+      if (!parsed.success) return bad("Тохиргоог шалгана уу");
       try {
         new Intl.DateTimeFormat("en", { timeZone: parsed.data.timeZone }).format();
       } catch {
-        return bad("Invalid timezone");
+        return bad("Цагийн бүс буруу байна (жишээ нь: Asia/Ulaanbaatar)");
       }
       state.preferences = parsed.data;
     } else if (action === "confirm" || action === "applyPlan") {
@@ -172,15 +174,15 @@ export const plannerMutations = {
         reminderId: z.string().max(200).optional(),
       });
       const applied = action === "applyPlan" ? applySchema.safeParse(data) : null;
-      if (applied && !applied.success) return bad("Invalid plan confirmation");
+      if (applied && !applied.success) return bad("Төлөвлөгөөг баталж чадсангүй. Дахин санал болгуулна уу");
       const request = applied?.success ? applied.data : undefined;
       const parsed = z
         .array(blockInput)
         .max(500)
         .safeParse(request?.blocks ?? data);
-      if (!parsed.success) return bad("Invalid study blocks");
+      if (!parsed.success) return bad("Сессийн мэдээлэл буруу байна");
       const policyResult = request ? policyInput.safeParse(parse(request.policy)) : undefined;
-      if (policyResult && !policyResult.success) return bad("Invalid plan constraints");
+      if (policyResult && !policyResult.success) return bad("Төлөвлөгөөний нөхцөл буруу байна");
       const policy = policyResult?.success ? policyResult.data : undefined;
       if (policy) validateWindows(policy.windows);
       const replaceIds = request?.replaceIds ?? [];
@@ -188,9 +190,9 @@ export const plannerMutations = {
         new Set(replaceIds).size !== replaceIds.length ||
         replaceIds.some((id) => !state.blocks.some((b) => b.id === id && b.status === "planned"))
       )
-        return bad("Only existing planned sessions can be replaced");
+        return bad("Зөвхөн төлөвлөсөн сессүүдийг солих боломжтой");
       if (request?.reminderId && !reminderItems(state).some((r) => r.id === request.reminderId))
-        return bad("Reminder changed; refresh and retry");
+        return bad("Сануулга өөрчлөгдсөн байна. Шинэчлээд дахин оролдоно уу");
       const fixed = state.blocks.filter((b) => !replaceIds.includes(b.id));
       const prefs = { ...state.preferences, energy: policy?.energy ?? state.preferences.energy };
       const profile = energyProfile(prefs.energy, prefs.focus);
@@ -201,8 +203,8 @@ export const plannerMutations = {
         const all = [...fixed.filter((x) => x.status !== "missed"), ...accepted];
         const rest = policy?.breakMinutes ?? b.breakMinutes ?? profile.rest;
         if (rest < profile.rest || (policy && b.breakMinutes !== policy.breakMinutes))
-          return bad("Break is too short or differs from the preview");
-        if (state.blocks.some((x) => x.id === b.id)) return bad("Duplicate session ID");
+          return bad("Завсарлага хэт богино эсвэл санал болгосноос өөр байна");
+        if (state.blocks.some((x) => x.id === b.id)) return bad("Сесс давхардсан байна");
         if (
           policy &&
           !policy.windows.some(
@@ -210,7 +212,7 @@ export const plannerMutations = {
               Date.parse(b.start) >= Date.parse(w.start) && Date.parse(b.end) <= Date.parse(w.end),
           )
         )
-          return bad("Session is outside the confirmed free time");
+          return bad("Сесс сонгосон сул цагаас гадуур байна");
         if (
           !task ||
           Date.parse(b.start) < Date.now() ||
@@ -233,7 +235,9 @@ export const plannerMutations = {
               ),
           )
         )
-          return bad("Sessions conflict, are expired, or exceed the deadline/focus length");
+          return bad(
+            "Сессүүд давхцаж, хугацаа нь өнгөрсөн, эсвэл эцсийн хугацаа ба төвлөрөх хугацаанаас хэтэрсэн байна",
+          );
         const key = dayKey(b.start, prefs.timeZone);
         if (
           dayKey(b.end, prefs.timeZone) !== key ||
@@ -243,18 +247,18 @@ export const plannerMutations = {
             duration(b) >
             Math.min(prefs.dailyLimit, caps[key] ?? prefs.dailyLimit)
         )
-          return bad("Daily workload exceeded");
+          return bad("Өдрийн дээд ачааллаас хэтэрлээ");
         if (
           all.filter((x) => x.taskId === task.id).reduce((n, x) => n + duration(x), 0) +
             duration(b) >
           task.minutes
         )
-          return bad("Task effort already scheduled");
+          return bad("Энэ даалгаврын бүх цаг аль хэдийн төлөвлөгдсөн байна");
         accepted.push({ ...b, breakMinutes: rest });
       }
       state.blocks = [...fixed, ...accepted];
       if (state.blocks.length > 500)
-        return bad("Maximum 500 sessions; delete completed tasks to archive sessions");
+        return bad("Хамгийн ихдээ 500 сесс хадгална. Дууссан даалгавраа устгаж цэвэрлэнэ үү");
       if (policy) {
         state.preferences = prefs;
         state.availability = policy.windows;
@@ -273,17 +277,19 @@ export const plannerMutations = {
         })
         .parse(data);
       const b = state.blocks.find((x) => x.id === input.id);
-      if (!b) return bad("Session missing");
-      if (b.status === "completed" || b.status === "missed") return bad("Session already closed");
+      if (!b) return bad("Сесс олдсонгүй");
+      if (b.status === "completed" || b.status === "missed") return bad("Сесс аль хэдийн хаагдсан байна");
       if (input.status === "started" && (b.status !== "planned" || Date.now() > Date.parse(b.end)))
-        return bad("Session expired or already started; mark missed and replan");
+        return bad(
+          "Сессийн хугацаа өнгөрсөн эсвэл аль хэдийн эхэлсэн байна. Тасалдсан гэж тэмдэглээд дахин төлөвлөнө үү",
+        );
       if (
         input.status === "started" &&
         state.blocks.some((x) => x.id !== b.id && x.status === "started")
       )
-        return bad("Another focus session is running");
+        return bad("Өөр сесс явагдаж байна. Эхлээд түүнийгээ дуусгана уу");
       if (input.status === "completed" && b.status !== "started")
-        return bad("Start the session first");
+        return bad("Эхлээд сессээ эхлүүлнэ үү");
       if (input.status === "started") b.startedAt = new Date().toISOString();
       b.status = input.status;
       b.actualMinutes =
@@ -295,7 +301,7 @@ export const plannerMutations = {
     } else if (action === "move") {
       const input = z.object({ id: z.string(), start: z.iso.datetime() }).parse(data);
       const b = state.blocks.find((x) => x.id === input.id && x.status === "planned");
-      if (!b) return bad("Only planned sessions can move");
+      if (!b) return bad("Зөвхөн төлөвлөсөн сессийг шилжүүлэх боломжтой");
       const candidate = {
         ...b,
         start: input.start,
@@ -324,7 +330,7 @@ export const plannerMutations = {
           ),
         )
       )
-        return bad("Session conflicts with another session or deadline");
+        return bad("Сесс өөр сесс эсвэл эцсийн хугацаатай давхцаж байна");
       const key = dayKey(candidate.start, state.preferences.timeZone);
       if (
         dayKey(candidate.end, state.preferences.timeZone) !== key ||
@@ -337,27 +343,27 @@ export const plannerMutations = {
             state.dayLimits?.[key] ?? state.preferences.dailyLimit,
           )
       )
-        return bad("Daily workload exceeded");
+        return bad("Өдрийн дээд ачааллаас хэтэрлээ");
       Object.assign(b, candidate);
     } else if (action === "claimReminders") {
       const ids = z.array(z.string().max(256)).max(100).parse(data);
       if (!state.preferences.enabled || quietHours(state))
-        return bad("Notifications disabled or quiet hours active");
+        return bad("Сануулга унтраалттай эсвэл чимээгүй цаг идэвхтэй байна");
       const due = dueReminders(state).map((r) => r.notificationId);
       if (ids.some((id) => !due.includes(id) || state.delivered.includes(id)))
-        return bad("Reminder already handled or not due");
+        return bad("Сануулгыг аль хэдийн хүлээж авсан эсвэл хугацаа нь болоогүй байна");
       state.delivered = [...new Set([...state.delivered, ...ids])].slice(-2000);
     } else if (action === "dismissReminders") {
       const ids = z.array(z.string().max(200)).max(100).parse(data);
       const valid = dueReminders(state).map((r) => r.id);
-      if (ids.some((id) => !valid.includes(id))) return bad("Reminder changed or is not due");
+      if (ids.some((id) => !valid.includes(id))) return bad("Сануулга өөрчлөгдсөн эсвэл хугацаа нь болоогүй байна");
       state.dismissed = [...new Set([...(state.dismissed ?? []), ...ids])].slice(-2000);
     } else if (action === "reminderAction") {
       const input = z
         .object({ id: z.string().max(200), action: z.enum(["start", "snooze", "dismiss"]) })
         .parse(data);
       const reminder = dueReminders(state).find((r) => r.id === input.id);
-      if (!reminder) return bad("Reminder changed or is not due");
+      if (!reminder) return bad("Сануулга өөрчлөгдсөн эсвэл хугацаа нь болоогүй байна");
       const task = state.tasks.find((t) => t.id === reminder.taskId)!;
       if (input.action === "snooze") {
         const until = new Date(Date.now() + 15 * 60000).toISOString();
@@ -370,7 +376,7 @@ export const plannerMutations = {
       } else {
         if (input.action === "start") {
           if (state.blocks.some((b) => b.status === "started"))
-            return bad("Another focus session is running");
+            return bad("Өөр сесс явагдаж байна. Эхлээд түүнийгээ дуусгана уу");
           const b = reminder.blockId
             ? state.blocks.find((b) => b.id === reminder.blockId)
             : state.blocks
@@ -390,7 +396,7 @@ export const plannerMutations = {
         }
         state.dismissed = [...new Set([...(state.dismissed ?? []), input.id])].slice(-2000);
       }
-    } else return bad("Unknown action");
+    } else return bad("Үйлдэл буруу байна");
     const updated = await context.models.Planner.findOneAndUpdate(
       { userId: state.userId, version: args.version },
       {
@@ -409,7 +415,7 @@ export const plannerMutations = {
       { new: true },
     ).lean();
     if (!updated)
-      throw new GraphQLError("Planner changed; refresh and retry", {
+      throw new GraphQLError("Төлөвлөгөө өөр газраас өөрчлөгдсөн байна. Шинэчлээд дахин оролдоно уу.", {
         extensions: { code: "CONFLICT" },
       });
     return output(updated);

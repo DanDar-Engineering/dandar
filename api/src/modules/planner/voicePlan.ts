@@ -85,7 +85,7 @@ export const voicePlanMutations = {
     const state = await getState(context, true);
     const speech = text.trim();
     if (!speech || speech.length > MAX_SPEECH_LENGTH) {
-      return bad(`Speak or write 1–${MAX_SPEECH_LENGTH} characters`);
+      return bad(`1–${MAX_SPEECH_LENGTH} тэмдэгт ярих эсвэл бичнэ үү`);
     }
 
     const now = new Date();
@@ -105,7 +105,7 @@ export const voicePlanMutations = {
       );
     } catch (error) {
       throw new GraphQLError(
-        `Gemma request failed: ${error instanceof Error ? error.message : String(error)}`,
+        `Gemma 4-өөс хариу авч чадсангүй: ${error instanceof Error ? error.message : String(error)}`,
         { extensions: { code: "AI_PROVIDER_ERROR" } },
       );
     }
@@ -137,7 +137,7 @@ export const voicePlanMutations = {
       return bad("Яриан дотроос даалгавар олдсонгүй. Юу хийх, хэзээ хийхээ хэлнэ үү.");
     }
     if (state.tasks.length + tasks.length > 100) {
-      return bad("Maximum 100 tasks");
+      return bad("Хамгийн ихдээ 100 даалгавар нэмэх боломжтой");
     }
 
     const windows: Window[] = parsed.windows.filter(
@@ -149,7 +149,7 @@ export const voicePlanMutations = {
     );
     if (!windows.length) {
       warnings.push(
-        "Хэзээ хичээллэхээ хэлээгүй тул зөвхөн даалгавар нэмнэ. Цагийг \"Төлөвлөгөө гаргах\"-аар хуваарилж болно.",
+        "Хэзээ хичээллэхээ хэлээгүй тул зөвхөн даалгавар нэмнэ. Цагийг «Төлөвлөгөө гаргах» товчоор хуваарилж болно.",
       );
     }
 

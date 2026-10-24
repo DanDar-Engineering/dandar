@@ -13,7 +13,7 @@ const endpoint = (path: string) => `${env.CHIMEGE_API_URL.replace(/\/+$/, "")}/$
 
 const requireToken = (token: string | undefined, name: string) => {
   if (!token) {
-    throw new VoiceNotConfiguredError(`${name} is not set in the plugin .env`);
+    throw new VoiceNotConfiguredError(`Дуу хоолой тохируулаагүй байна: plugin-ий .env файлд ${name}-г тохируулна уу`);
   }
 
   return token;
