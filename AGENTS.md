@@ -131,8 +131,8 @@ See `docs/erxes-integration.md`. In short:
   `mastery.ts` weak decks, `exam.ts` `applyExam`: as an exam date nears,
   intervals shrink so each card gets `TARGET_ROUNDS` (4) reviews, and nothing
   is due later than the day before the exam). `pnpm --filter dandar_api test`
-  runs the unit tests (`node --test`, type stripping: no enums or parameter
-  properties in `logic/` and `cardGen.ts`).
+  runs the combined unit tests (`tsx --test`, using the same TypeScript
+  module handling as the API so planner resolver tests can load its config).
 - Gemma only writes content: `dandarCardsDraft` (notes, a photo, or a saved
   scan) and `dandarCardHelp` (hint / explain / mnemonic). Prompts and the
   JSON parser are in `api/src/modules/study/cardGen.ts`; calls go through
@@ -200,6 +200,35 @@ See `docs/erxes-integration.md`. In short:
   disables it, `STUDY_TZ_OFFSET_MINUTES` (default 480, Ulaanbaatar) sets the
   students' local time.
 
+## Voice (OmniVoice + Chimege)
+
+- Text-to-speech goes through `api/src/modules/voice/tts.ts`, which picks
+  `TTS_PROVIDER`: `omnivoice` (default) calls the Gradio app at
+  `OMNIVOICE_URL` (`/gradio_api/call/_design_fn`, language `Mongolian`,
+  `OMNIVOICE_GENDER`; `api/src/modules/voice/omnivoice.ts`) and downloads the
+  24 kHz WAV only from that host; `chimege` uses `synthesize` below. The
+  public Space needs no key but has a shared GPU quota (`OMNIVOICE_HF_TOKEN`
+  raises it); self-host with `omnivoice-demo` on a GPU for demos.
+- Speech-to-text is Chimege only.
+
+- `api/src/modules/voice/chimege.ts` owns every Chimege call: `synthesize`
+  (POST `<CHIMEGE_API_URL>/synthesize`, `Token` header, plain text in, audio
+  out) and `transcribe` (POST `/transcribe`, 16 kHz mono WAV in, text out).
+  The console issues one token per API: `CHIMEGE_TOKEN` (TTS) and
+  `CHIMEGE_STT_TOKEN` (STT, falls back to `CHIMEGE_TOKEN`). A missing token
+  makes `dandarVoiceStatus.configured` / `sttConfigured` false and the UI
+  hides that control; errors are `VOICE_NOT_CONFIGURED` /
+  `VOICE_PROVIDER_ERROR`.
+- GraphQL (`api/src/graphql/voice.ts`): `dandarVoiceStatus`,
+  `dandarSpeak(text)` → `audioUrl` data URL (≤300 chars, mirrored in
+  `ui/src/modules/voice/useSpeak.ts`), `dandarTranscribe(audioData)` (base64
+  WAV ≤30 s, `MAX_AUDIO_CHARS` mirrored in `ui/src/modules/voice/recordWav.ts`).
+- The browser records WebM/Opus; `recordWav.ts` resamples to 16 kHz mono PCM
+  WAV before upload.
+- Planner: a delivered reminder is also read aloud when "Дуут сануулга" is on
+  (per-device, `localStorage` key `dandar:voiceReminders`); each reminder row
+  has a listen button and the task title has a microphone (`MicButton`).
+
 ## Gemma 4 (AI, optional)
 
 - The "Ask Gemma 4" card lives on the settings page, not the overview.
@@ -237,7 +266,13 @@ erxes backend → core-ui → plugin UI → VS Code tunnel detached, skipping
 anything already listening (logs and pid files in `~/logs`) and restarting the
 backend once if the gateway crashes while Apollo Router starts;
 `scripts/stop-all.sh` kills those process groups and any orphaned Apollo
-Router. `REMOTE.md` covers serving erxes from a home PC to a laptop through a
+Router. `start-all.sh --host [IP]` serves phones on the same wifi: it binds
+core-ui to `0.0.0.0`, exports the Windows LAN address as
+`REACT_APP_API_URL`, `DOMAIN` (gateway CORS) and `UI_ENTRY_URL`, refuses to
+reuse services started for another host (`~/logs/public-host`), and prints the
+admin `scripts/phone-forward.ps1` command (port proxy + LocalSubnet firewall
+rule for 3001/3099/4000; 3399 stays private) while WSL's NAT address is not
+forwarded. `REMOTE.md` covers serving erxes from a home PC to a laptop through a
 VS Code Remote Tunnel and sharing it with the team through Live Share.
 `scripts/vscode-tunnel-login.mjs` logs the VS Code CLI in with GitHub (VS
 Code's OAuth app, `read:user read:org`): the CLI's own device login gets

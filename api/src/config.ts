@@ -48,6 +48,23 @@ const envSchema = z.object({
   // offset turns UTC into the students' local time (Ulaanbaatar = 480).
   STUDY_REMINDERS: z.enum(["on", "off"]).default("on"),
   STUDY_TZ_OFFSET_MINUTES: z.coerce.number().int().min(-720).max(840).default(480),
+  // Chimege (chimege.com) Mongolian text-to-speech and speech-to-text. The
+  // console issues one token per API: CHIMEGE_TOKEN is the TTS token and
+  // CHIMEGE_STT_TOKEN the speech-to-text one (falls back to CHIMEGE_TOKEN).
+  // The base URL is overridable because the API version is part of the path.
+  CHIMEGE_TOKEN: optional,
+  CHIMEGE_STT_TOKEN: optional,
+  // Text-to-speech engine. "omnivoice" (k2-fsa/OmniVoice, 600+ languages
+  // including Mongolian) calls a Gradio app: the public Hugging Face Space by
+  // default, or a self-hosted `omnivoice-demo` (GPU, Colab). "chimege" uses
+  // CHIMEGE_TOKEN. Speech-to-text always uses Chimege.
+  TTS_PROVIDER: z.enum(["omnivoice", "chimege"]).default("omnivoice"),
+  OMNIVOICE_URL: z.string().default("https://k2-fsa-omnivoice.hf.space"),
+  OMNIVOICE_GENDER: z.enum(["Auto", "Male", "Female"]).default("Female"),
+  // A Hugging Face token raises the public Space's GPU quota; optional.
+  OMNIVOICE_HF_TOKEN: optional,
+  CHIMEGE_API_URL: z.string().default("https://api.chimege.com/v1.2"),
+  CHIMEGE_VOICE_ID: optional,
 });
 
 export const env = envSchema.parse(process.env);

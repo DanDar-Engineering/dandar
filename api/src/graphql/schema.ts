@@ -1,3 +1,4 @@
+import { plannerTypeDefs, plannerQueries, plannerMutations } from "../modules/planner/resolvers.ts";
 import { gql } from "graphql-tag";
 import { GraphQLError } from "graphql";
 import { manifest } from "../config.ts";
@@ -8,10 +9,13 @@ import { RECORD_ID, assertPage, requireTenantUser, toAiError } from "./guards.ts
 import { scanResolvers, scanTypeDefs } from "./scan.ts";
 import { studyResolvers, studyTypeDefs } from "./study.ts";
 import { studyPracticeResolvers, studyPracticeTypeDefs } from "./studyPractice.ts";
+import { voiceResolvers, voiceTypeDefs } from "./voice.ts";
 
 // Every type and operation is prefixed with the plugin name: the gateway
 // composes all plugins into one supergraph, so names must be unique across it.
 export const typeDefs = gql`
+  ${plannerTypeDefs}
+
   extend schema @link(url: "https://specs.apollo.dev/federation/v2.9", import: ["@key"])
 
   type DandarStatus {
@@ -58,6 +62,7 @@ export const typeDefs = gql`
   ${studyTypeDefs}
 
   ${studyPracticeTypeDefs}
+  ${voiceTypeDefs}
 `;
 
 const LABEL_MAX_LENGTH = 200;
@@ -69,6 +74,7 @@ const toSampleOutput = (sample: { createdAt?: Date }) => ({
 
 export const resolvers = {
   Query: {
+    ...plannerQueries,
     dandarStatus: (_parent: unknown, _args: unknown, { subdomain, user }: Context) => ({
       plugin: manifest.name,
       version: manifest.version,
@@ -90,11 +96,14 @@ export const resolvers = {
     ...scanResolvers.Query,
     ...studyResolvers.Query,
     ...studyPracticeResolvers.Query,
+    ...voiceResolvers.Query,
   },
   Mutation: {
+    ...plannerMutations,
     ...scanResolvers.Mutation,
     ...studyResolvers.Mutation,
     ...studyPracticeResolvers.Mutation,
+    ...voiceResolvers.Mutation,
     dandarSampleAdd: async (
       _parent: unknown,
       { label, customerId }: { label: string; customerId?: string | null },
