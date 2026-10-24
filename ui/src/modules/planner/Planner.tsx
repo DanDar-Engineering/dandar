@@ -38,7 +38,7 @@ const readVoicePreference = () => {
   }
 };
 
-import type {Task,Block,State,Energy} from "./types";
+import type { Task, Block, State, Energy } from "./types";
 import type { DandarPlanProposeMutation } from "~/gql/graphql";
 const local = (date: Date) =>
   new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
@@ -95,10 +95,12 @@ export const Planner = () => {
   }, [modal]);
   const [task, setTask] = useState<Task>(freshTask);
   const [message, setMessage] = useState("");
-  const [planEnvelope,setPlanEnvelope]=useState<DandarPlanProposeMutation["dandarPlanPropose"]|null>(null);
-  const [replacePlanned,setReplacePlanned]=useState(false);
-  const [replanReminder,setReplanReminder]=useState<string|undefined>();
-  const availabilityLoaded=useRef(false);
+  const [planEnvelope, setPlanEnvelope] = useState<
+    DandarPlanProposeMutation["dandarPlanPropose"] | null
+  >(null);
+  const [replacePlanned, setReplacePlanned] = useState(false);
+  const [replanReminder, setReplanReminder] = useState<string | undefined>();
+  const availabilityLoaded = useRef(false);
   const [preview, setPreview] = useState<Block[]>([]);
   const [warnings, setWarnings] = useState<string[]>([]);
   const [model, setModel] = useState("");
@@ -141,7 +143,14 @@ export const Planner = () => {
         const next = JSON.parse(data.dandarPlanner.data) as State;
         setState(next);
         setPrefs(next.preferences);
-        if(!availabilityLoaded.current){availabilityLoaded.current=true;const saved=next.availability?.filter(w=>Date.parse(w.end)>Date.now());if(saved?.length)setWindows(saved.map(w=>({start:local(new Date(w.start)),end:local(new Date(w.end))})));}
+        if (!availabilityLoaded.current) {
+          availabilityLoaded.current = true;
+          const saved = next.availability?.filter((w) => Date.parse(w.end) > Date.now());
+          if (saved?.length)
+            setWindows(
+              saved.map((w) => ({ start: local(new Date(w.start)), end: local(new Date(w.end)) })),
+            );
+        }
         version.current = data.dandarPlanner.version;
       } catch {
         setMessage("Өгөгдөл уншиж чадсангүй.");
@@ -188,21 +197,52 @@ export const Planner = () => {
       : p.quietStart < p.quietEnd
         ? hour >= p.quietStart && hour < p.quietEnd
         : hour >= p.quietStart || hour < p.quietEnd;
-  const energy:Energy = p.energy ?? "normal";
-  const focusMode=energy==="low"?{focus:25,rest:10}:energy==="high"?{focus:45,rest:10}:{focus:p.focus,rest:p.focus===25?5:10};
+  const energy: Energy = p.energy ?? "normal";
+  const focusMode =
+    energy === "low"
+      ? { focus: 25, rest: 10 }
+      : energy === "high"
+        ? { focus: 45, rest: 10 }
+        : { focus: p.focus, rest: p.focus === 25 ? 5 : 10 };
   const lead = p.sessionReminderMinutes ?? 15;
-  const due=(state.reminderItems??[]).filter(r=>Date.parse(r.dueAt)<=now&&now<Date.parse(r.expiresAt)).flatMap(r=>{const task=state.tasks.find(t=>t.id===r.taskId&&t.status!=="completed");return task?[{...r,task}]:[];});
-  function beginReplan(id?:string){setPreview([]);setPlanEnvelope(null);setReplacePlanned(true);setReplanReminder(id);setTab("planner");setModal("plan");}
-  async function applyPreview(envelope:DandarPlanProposeMutation["dandarPlanPropose"]){
-    const ok=await save("applyPlan",{blocks:JSON.parse(envelope.data) as Block[],replaceIds:envelope.replaceIds,policy:envelope.policy,reminderId:replanReminder},envelope.version);
-    if(ok){setPreview([]);setPlanEnvelope(null);setReplanReminder(undefined);setModal(null);}
+  const due = (state.reminderItems ?? [])
+    .filter((r) => Date.parse(r.dueAt) <= now && now < Date.parse(r.expiresAt))
+    .flatMap((r) => {
+      const task = state.tasks.find((t) => t.id === r.taskId && t.status !== "completed");
+      return task ? [{ ...r, task }] : [];
+    });
+  function beginReplan(id?: string) {
+    setPreview([]);
+    setPlanEnvelope(null);
+    setReplacePlanned(true);
+    setReplanReminder(id);
+    setTab("planner");
+    setModal("plan");
+  }
+  async function applyPreview(envelope: DandarPlanProposeMutation["dandarPlanPropose"]) {
+    const ok = await save(
+      "applyPlan",
+      {
+        blocks: JSON.parse(envelope.data) as Block[],
+        replaceIds: envelope.replaceIds,
+        policy: envelope.policy,
+        reminderId: replanReminder,
+      },
+      envelope.version,
+    );
+    if (ok) {
+      setPreview([]);
+      setPlanEnvelope(null);
+      setReplanReminder(undefined);
+      setModal(null);
+    }
     return ok;
   }
   // A server-side version claim ensures only one browser/tab handles each reminder.
   useEffect(() => {
     if (!due.length || quiet || !p.enabled || notification !== "granted" || busy.current) return;
-    const batch = due.filter(r=>!state.delivered.includes(r.notificationId)).slice(0, 100);
-    if(!batch.length)return;
+    const batch = due.filter((r) => !state.delivered.includes(r.notificationId)).slice(0, 100);
+    if (!batch.length) return;
     void save(
       "claimReminders",
       batch.map((r) => r.notificationId),
@@ -214,7 +254,11 @@ export const Planner = () => {
             body: titles.join(" • "),
             tag: "dandar-deadlines",
           });
-          notice.onclick=()=>{window.focus();setTab("reminders");notice.close();};
+          notice.onclick = () => {
+            window.focus();
+            setTab("reminders");
+            notice.close();
+          };
         } catch {
           setMessage("Браузер мэдэгдэл харуулж чадсангүй.");
         }
@@ -232,7 +276,7 @@ export const Planner = () => {
     try {
       const result = await propose({
         variables: {
-          options:JSON.stringify({energy,replacePlanned}),
+          options: JSON.stringify({ energy, replacePlanned }),
           windows: JSON.stringify(
             windows.map((w) => ({
               start: new Date(w.start).toISOString(),
@@ -679,11 +723,15 @@ export const Planner = () => {
                           className="dandar:icon-button"
                           aria-label={`${r.task.title} сануулгыг уншсан`}
                           disabled={saving}
-                          onClick={() => save("reminderAction", {id:r.id,action:"dismiss"})}
+                          onClick={() => save("reminderAction", { id: r.id, action: "dismiss" })}
                         >
                           <IconCheck size={18} />
                         </button>
-                        <button className="dandar:soft-button" disabled={saving} onClick={() => beginReplan(r.id)}>
+                        <button
+                          className="dandar:soft-button"
+                          disabled={saving}
+                          onClick={() => beginReplan(r.id)}
+                        >
                           Дахин төлөвлөх
                         </button>
                       </div>
@@ -850,7 +898,7 @@ export const Planner = () => {
               <p>{focusTitle || "Өнөөдрийн нэг зорилгоо сонгоорой"}</p>
               <div className="dandar:focus-chips">
                 <span>{focusMode.focus} мин төвлөрөл</span>
-                <span>{running?.breakMinutes??focusMode.rest} мин завсарлага</span>
+                <span>{running?.breakMinutes ?? focusMode.rest} мин завсарлага</span>
               </div>
               {running ? (
                 <>
@@ -1324,7 +1372,10 @@ export const Planner = () => {
             </div>
             <label>
               Эрч хүч
-              <select value={prefs.energy ?? "normal"} onChange={(e) => setPrefs({ ...prefs, energy: e.target.value as Energy })}>
+              <select
+                value={prefs.energy ?? "normal"}
+                onChange={(e) => setPrefs({ ...prefs, energy: e.target.value as Energy })}
+              >
                 <option value="low">Бага</option>
                 <option value="normal">Хэвийн</option>
                 <option value="high">Өндөр</option>
@@ -1375,7 +1426,15 @@ export const Planner = () => {
         {modal === "plan" && (
           <div className="dandar:study-form">
             <label>
-              <input type="checkbox" checked={replacePlanned} onChange={(e) => { setReplacePlanned(e.target.checked); setPreview([]); setPlanEnvelope(null); }} />
+              <input
+                type="checkbox"
+                checked={replacePlanned}
+                onChange={(e) => {
+                  setReplacePlanned(e.target.checked);
+                  setPreview([]);
+                  setPlanEnvelope(null);
+                }}
+              />
               Төлөвлөсөн сессүүдийг шинэ хуваариар солих
             </label>
             <div className="dandar:plan-note">

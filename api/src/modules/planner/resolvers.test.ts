@@ -73,9 +73,12 @@ test("applying a replacement preview preserves its energy and availability polic
   start.setUTCHours(12, 0, 0, 0);
   await update(context, 0, "task", task(new Date(start.getTime() + 86400000).toISOString()));
   const block = {
-    id: "old", taskId: "task1", start: start.toISOString(),
+    id: "old",
+    taskId: "task1",
+    start: start.toISOString(),
     end: new Date(start.getTime() + 25 * 60000).toISOString(),
-    status: "planned", actualMinutes: 0,
+    status: "planned",
+    actualMinutes: 0,
   };
   await update(context, 1, "confirm", [block]);
   const windows = [{ start: block.start, end: new Date(start.getTime() + 3600000).toISOString() }];
@@ -87,7 +90,10 @@ test("applying a replacement preview preserves its energy and availability polic
   await assert.rejects(() => update(context, 1, "applyPlan", request), /Өөр табаас/);
   const result = await update(context, 2, "applyPlan", request);
   const state = JSON.parse(result.data) as PlannerState;
-  assert.deepEqual(state.blocks.map((b) => b.id), ["replacement"]);
+  assert.deepEqual(
+    state.blocks.map((b) => b.id),
+    ["replacement"],
+  );
   assert.equal(state.preferences.energy, "low");
   assert.deepEqual(state.availability, windows);
 });
