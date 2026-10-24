@@ -112,6 +112,11 @@ See `docs/erxes-integration.md`. In short:
   JSON `{kind, title, subject, summary, confidence}`; `confident` is false for
   low confidence or `[?]` in the text. On save, `note` keeps a summary; `exam`
   goes to `teacherId` (`sent`) or waits for one (`awaiting_teacher`).
+- `CameraButton` (`ui/src/modules/scan/CameraButton.tsx`, used by
+  `ScanWizard` and `AddCards`) opens a live camera dialog when the page is a
+  secure context (localhost/HTTPS) and otherwise `<input capture>` for the
+  phone camera app (plain http on the LAN). Shots go through `prepareImage`
+  like uploads; the stream stops when the dialog closes.
 - Photos are stored as base64 in `dandar_scans` and returned only by
   `dandarScanDetail` (`imageUrl`); lists project them out. The UI re-encodes
   to JPEG ≤1600 px because the Apollo Router rejects bodies over 2 MB;

@@ -13,6 +13,7 @@ import { Badge, Button, Card, Input, Label, Select, Skeleton, Textarea, cn, toas
 import { SelectMember } from "ui-modules";
 import type { DandarScanKind } from "~/gql/graphql";
 import { SCAN_READ_MUTATION, SCAN_SAVE_MUTATION } from "./graphql";
+import { CameraButton } from "./CameraButton";
 import { ACCEPTED_IMAGE_TYPES, type PreparedImage, prepareImage } from "./image";
 
 // Mirror the limits in api/src/graphql/scan.ts.
@@ -165,12 +166,16 @@ export const ScanWizard = () => {
     read({ variables: { mimeType: prepared.mimeType, imageData: prepared.data } });
   };
 
-  const onFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
+  const onFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    setImageError("");
-    if (!file) {
-      return;
+    if (file) {
+      void useFile(file);
     }
+  };
+
+  // Uploads and camera shots go through the same downsizing and reading.
+  const useFile = async (file: File) => {
+    setImageError("");
     setPreparing(true);
     try {
       const prepared = await prepareImage(file);
@@ -247,6 +252,10 @@ export const ScanWizard = () => {
               onChange={onFileChange}
               className="dandar:sr-only"
             />
+            <div className="dandar:mt-3 dandar:flex dandar:items-center dandar:justify-center dandar:gap-3 dandar:text-sm dandar:text-muted-foreground">
+              <span>эсвэл</span>
+              <CameraButton disabled={preparing} onCapture={useFile} onError={setImageError} />
+            </div>
             {imageError ? (
               <p role="alert" className="dandar:mt-3 dandar:text-sm dandar:text-destructive">
                 {imageError}
