@@ -157,8 +157,10 @@ See `docs/erxes-integration.md`. In short:
 - `api/src/modules/voice/chimege.ts` owns every Chimege call: `synthesize`
   (POST `<CHIMEGE_API_URL>/synthesize`, `Token` header, plain text in, audio
   out) and `transcribe` (POST `/transcribe`, 16 kHz mono WAV in, text out).
-  `CHIMEGE_TOKEN` unset = `dandarVoiceStatus.configured` false and the UI
-  hides voice controls; errors are `VOICE_NOT_CONFIGURED` /
+  The console issues one token per API: `CHIMEGE_TOKEN` (TTS) and
+  `CHIMEGE_STT_TOKEN` (STT, falls back to `CHIMEGE_TOKEN`). A missing token
+  makes `dandarVoiceStatus.configured` / `sttConfigured` false and the UI
+  hides that control; errors are `VOICE_NOT_CONFIGURED` /
   `VOICE_PROVIDER_ERROR`.
 - GraphQL (`api/src/graphql/voice.ts`): `dandarVoiceStatus`,
   `dandarSpeak(text)` → `audioUrl` data URL (≤300 chars, mirrored in

@@ -7,16 +7,21 @@ const TIMEOUT_MS = 30_000;
 
 export class VoiceNotConfiguredError extends Error {}
 
-export const getVoiceStatus = () => ({ configured: Boolean(env.CHIMEGE_TOKEN) });
+const sttToken = () => env.CHIMEGE_STT_TOKEN ?? env.CHIMEGE_TOKEN;
+
+export const getVoiceStatus = () => ({
+  configured: Boolean(env.CHIMEGE_TOKEN),
+  sttConfigured: Boolean(sttToken()),
+});
 
 const endpoint = (path: string) => `${env.CHIMEGE_API_URL.replace(/\/+$/, "")}/${path}`;
 
-const requireToken = () => {
-  if (!env.CHIMEGE_TOKEN) {
-    throw new VoiceNotConfiguredError("CHIMEGE_TOKEN is not set in the plugin .env");
+const requireToken = (token: string | undefined, name: string) => {
+  if (!token) {
+    throw new VoiceNotConfiguredError(`${name} is not set in the plugin .env`);
   }
 
-  return env.CHIMEGE_TOKEN;
+  return token;
 };
 
 const failure = async (response: Response) => {
@@ -27,7 +32,7 @@ const failure = async (response: Response) => {
 
 // Text in, audio out (WAV unless Chimege says otherwise in Content-Type).
 export const synthesize = async (text: string) => {
-  const token = requireToken();
+  const token = requireToken(env.CHIMEGE_TOKEN, "CHIMEGE_TOKEN");
   const response = await fetch(endpoint("synthesize"), {
     method: "POST",
     headers: {
@@ -54,7 +59,7 @@ export const synthesize = async (text: string) => {
 
 // 16 kHz mono WAV in (the UI records and converts it), text out.
 export const transcribe = async (wav: Buffer) => {
-  const token = requireToken();
+  const token = requireToken(sttToken(), "CHIMEGE_STT_TOKEN");
   const response = await fetch(endpoint("transcribe"), {
     method: "POST",
     headers: {

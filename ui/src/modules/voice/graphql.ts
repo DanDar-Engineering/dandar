@@ -4,6 +4,7 @@ export const VOICE_STATUS_QUERY = gql(`
   query dandarVoiceStatus {
     dandarVoiceStatus {
       configured
+      sttConfigured
     }
   }
 `);

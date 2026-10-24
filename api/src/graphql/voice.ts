@@ -12,8 +12,10 @@ import { badInput, requireTenantUser } from "./guards.ts";
 
 export const voiceTypeDefs = gql`
   type DandarVoiceStatus {
-    "true when CHIMEGE_TOKEN is set"
+    "true when CHIMEGE_TOKEN (text-to-speech) is set"
     configured: Boolean!
+    "true when a speech-to-text token is set (CHIMEGE_STT_TOKEN or CHIMEGE_TOKEN)"
+    sttConfigured: Boolean!
   }
 
   type DandarSpeech {

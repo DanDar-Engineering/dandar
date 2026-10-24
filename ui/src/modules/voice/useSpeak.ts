@@ -17,6 +17,7 @@ export const useSpeak = () => {
   const [error, setError] = useState("");
   const audio = useRef<HTMLAudioElement | null>(null);
   const configured = data?.dandarVoiceStatus.configured ?? false;
+  const sttConfigured = data?.dandarVoiceStatus.sttConfigured ?? false;
 
   const speak = useCallback(
     async (text: string) => {
@@ -55,5 +56,5 @@ export const useSpeak = () => {
     [configured, speakMutation],
   );
 
-  return { configured, speak, speaking, error };
+  return { configured, sttConfigured, speak, speaking, error };
 };

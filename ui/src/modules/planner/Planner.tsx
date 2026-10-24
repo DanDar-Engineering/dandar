@@ -138,7 +138,13 @@ export const Planner = () => {
   const [notification, setNotification] = useState(
     typeof Notification === "undefined" ? "unsupported" : Notification.permission,
   );
-  const { configured: voiceReady, speak, speaking, error: voiceError } = useSpeak();
+  const {
+    configured: voiceReady,
+    sttConfigured: dictationReady,
+    speak,
+    speaking,
+    error: voiceError,
+  } = useSpeak();
   const [voiceOn, setVoiceOn] = useState(readVoicePreference);
   const toggleVoice = () => {
     const next = !voiceOn;
@@ -1130,7 +1136,7 @@ export const Planner = () => {
                   value={task.title}
                   onChange={(e) => setTask({ ...task, title: e.target.value })}
                 />
-                {voiceReady && (
+                {dictationReady && (
                   <MicButton
                     className="dandar:icon-button"
                     onText={(text) =>
