@@ -93,6 +93,65 @@ See `docs/erxes-integration.md`. In short:
 - `BUILD.md` is the step-by-step guide for adding a module; keep it in sync
   when the sample's structure changes.
 
+## Scans (Gemma 4 OCR)
+
+- Route `/dandar/scans` (`ui/src/pages/ScansPage.tsx`, `ui/src/modules/scan/`)
+  with a student tab (`ScanWizard` + own list) and a teacher tab (inbox).
+  `ScanWizard` follows the Pure-Ed "Скан" design: upload → check → save, the
+  photo beside editable fields with confidence badges.
+- Nothing is stored before the student confirms: `dandarScanRead` only reads,
+  `dandarScanSave` stores the checked fields. Field limits are mirrored in
+  `FIELD_LIMITS` (`ui/src/modules/scan/ScanWizard.tsx`).
+- Roles follow the record, not a setting: `studentId` is the uploader,
+  `teacherId` an erxes team member picked with `SelectMember`. Every model
+  query filters by the acting user (`api/src/modules/scan/db/models/Scan.ts`).
+- Permissions: `dandarScansSubmit` (upload, own list, send to teacher) and
+  `dandarScansReview` (inbox, review).
+- `dandarScanRead` runs `readScan` (`api/src/modules/scan/readScan.ts`):
+  one vision call transcribes, a second sees the photo plus text and returns
+  JSON `{kind, title, subject, summary, confidence}`; `confident` is false for
+  low confidence or `[?]` in the text. On save, `note` keeps a summary; `exam`
+  goes to `teacherId` (`sent`) or waits for one (`awaiting_teacher`).
+- Photos are stored as base64 in `dandar_scans` and returned only by
+  `dandarScanDetail` (`imageUrl`); lists project them out. The UI re-encodes
+  to JPEG ≤1600 px because the Apollo Router rejects bodies over 2 MB;
+  `MAX_IMAGE_CHARS` (1 500 000) is mirrored in `ui/src/modules/scan/image.ts`.
+- `api/src/modules/scan/constants.ts` must not import mongoose or
+  erxes-api-shared: `print-schema` loads it and would otherwise never exit.
+
+## Study cards (Anki-style review, exams, Gemma 4 card drafts)
+
+- Route `/dandar/study?tab=review|add|exams|library`
+  (`ui/src/pages/StudyPage.tsx`, `ui/src/modules/study/`). The tab and, for
+  `tab=add`, the `scan` id live in the URL: "Миний материал" links to
+  `/dandar/study?tab=add&scan=<id>` and `AddCards` starts a draft from it.
+- Scheduling is pure code, no LLM: `api/src/modules/study/logic/`
+  (`forgettingCurve.ts` `R = exp(-t/S)`, `scheduler.ts` four grades
+  `forgot|unsure|know|easy` that update stability `S` and the next due time,
+  `mastery.ts` weak decks, `exam.ts` `applyExam`: as an exam date nears,
+  intervals shrink so each card gets `TARGET_ROUNDS` (4) reviews, and nothing
+  is due later than the day before the exam). `pnpm --filter dandar_api test`
+  runs the combined unit tests (`tsx --test`, using the same TypeScript
+  module handling as the API so planner resolver tests can load its config).
+- Gemma only writes content: `dandarCardsDraft` (notes, a photo, or a saved
+  scan) and `dandarCardHelp` (hint / explain / mnemonic). Prompts and the
+  JSON parser are in `api/src/modules/study/cardGen.ts`; calls go through
+  `askGemma` with its `image` option. The material is passed as data and the
+  prompt says to ignore instructions inside it.
+- Nothing is stored before the student checks it: `dandarCardsDraft` returns
+  cards, `DraftEditor` lets the student edit/drop them, `dandarCardsSave`
+  stores them (and, when the material states an exam date, schedules the
+  deck). Limits are mirrored in `AddCards.tsx` / `DraftEditor.tsx`.
+- From a scan: `scanId` reuses the scan's stored `text` (no second photo
+  upload) and is accepted only for the signed-in student's own scans.
+  Photos taken in the card form go through the same `prepareImage` as scans
+  (JPEG ≤1600 px, `MAX_IMAGE_CHARS`) and `assertImage` from `graphql/scan.ts`.
+- Data: `dandar_study_cards` (`userId`, `topicId` = deck, `front`, `back`,
+  `scanId`, stability, lapses, reviews, `lastReviewedAt`, `dueAt`) and
+  `dandar_study_exams` (`userId`, `deck`, `examAt`, unique per user and deck).
+  Every query filters by `userId`; permissions `dandarStudyRead` /
+  `dandarStudyWrite`.
+
 ## Gemma 4 (AI, optional)
 
 - The "Ask Gemma 4" card lives on the settings page, not the overview.
@@ -101,7 +160,10 @@ See `docs/erxes-integration.md`. In short:
   `getAiStatus`); resolvers never call a provider directly. `AI_PROVIDER`
   selects `gemini` (Gemini API `generateContent`, thought parts dropped) or
   `openai` (any OpenAI-compatible `/chat/completions`: Ollama, DigitalOcean).
-  Calls use Node's `fetch` with a 60 s timeout; there is no AI SDK dependency.
+  Calls use Node's `fetch` with a 60 s timeout (180 s with an image); there is
+  no AI SDK dependency. `askGemma`'s options take an `image` (base64 +
+  mimeType: Gemini `inlineData`, OpenAI-compatible `image_url` data URL) and a
+  `temperature`.
 - `TUTOR_SYSTEM_PROMPT` stays server-side; the UI sends only the question.
   `MAX_PROMPT_LENGTH` (4000) is mirrored in `ui/src/modules/ai/AskGemma.tsx`.
 - `dandarAsk` is a mutation: it spends provider quota. Missing configuration
@@ -116,10 +178,16 @@ See `docs/erxes-integration.md`. In short:
 `scripts/setup-erxes.sh` and `scripts/setup-plugin.sh` automate it;
 `scripts/erxes.env.example` is the erxes `.env` template. Keep secrets out of
 the repository: `.env` files are gitignored and the scripts ask for them.
+`scripts/set-mongo-url.sh` writes `MONGO_URL` into both `.env` files from the
+Atlas driver string (asks for `<db_password>` separately, adds the `erxes`
+database; `--check` only tests it); `setup-erxes.sh` calls it and skips the
+Cypress/Puppeteer browser downloads. `scripts/wsl-dns.sh` (sudo, opt-in) makes
+WSL DNS survive lossy wifi; `setup-wsl.sh` suggests it when lookups fail.
 
 `scripts/start-all.sh` checks MongoDB reachability, then starts plugin API →
 erxes backend → core-ui → plugin UI → VS Code tunnel detached, skipping
-anything already listening (logs and pid files in `~/logs`);
+anything already listening (logs and pid files in `~/logs`) and restarting the
+backend once if the gateway crashes while Apollo Router starts;
 `scripts/stop-all.sh` kills those process groups and any orphaned Apollo
 Router. `REMOTE.md` covers serving erxes from a home PC to a laptop through a
 VS Code Remote Tunnel and sharing it with the team through Live Share.
