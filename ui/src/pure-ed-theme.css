@@ -502,6 +502,119 @@
   transition: width 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
+/* Navigation Icon Styling */
+[class*="MenuLink"] svg {
+  color: var(--pure-primary) !important;
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+[class*="MenuLink"]:hover svg {
+  filter: drop-shadow(0 0 6px rgba(73, 73, 255, 0.5));
+  transform: scale(1.1);
+}
+
+/* Icon Animations */
+
+/* Subtle bounce for navigation items */
+@keyframes animate-bounce-subtle {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-2px);
+  }
+}
+
+.animate-bounce-subtle {
+  animation: animate-bounce-subtle 2s ease-in-out infinite;
+}
+
+/* Glow pulse for scan icons */
+@keyframes animate-pulse-glow {
+  0%, 100% {
+    opacity: 1;
+    filter: drop-shadow(0 0 0px rgba(73, 73, 255, 0));
+  }
+  50% {
+    opacity: 0.9;
+    filter: drop-shadow(0 0 6px rgba(73, 73, 255, 0.6));
+  }
+}
+
+.animate-pulse-glow {
+  animation: animate-pulse-glow 2s ease-in-out infinite;
+}
+
+/* Card flip for study icon */
+@keyframes animate-flip {
+  0%, 100% {
+    transform: rotateY(0deg);
+  }
+  50% {
+    transform: rotateY(10deg);
+  }
+}
+
+.animate-flip {
+  animation: animate-flip 3s ease-in-out infinite;
+  transform-style: preserve-3d;
+}
+
+/* Smooth spin for settings icon */
+@keyframes animate-spin-slow {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin-slow {
+  animation: animate-spin-slow 4s linear infinite;
+}
+
+/* Bounce up for chat icon */
+@keyframes animate-bounce-up {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+.animate-bounce-up {
+  animation: animate-bounce-up 2.5s ease-in-out infinite;
+}
+
+/* Icon hover effects */
+.pure-icon-hover {
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.pure-icon-hover:hover {
+  transform: scale(1.1);
+}
+
+.pure-icon-hover-glow:hover {
+  filter: drop-shadow(0 0 8px rgba(73, 73, 255, 0.6));
+}
+
+/* Loading states */
+.pure-loading-spinner {
+  animation: pure-spin 1s linear infinite;
+}
+
+.pure-icon-fade {
+  opacity: 0.7;
+  transition: opacity 0.3s ease;
+}
+
+.pure-icon-fade:hover {
+  opacity: 1;
+}
+
 /* Responsive */
 @media (max-width: 640px) {
   .pure-ai-message .pure-chat-bubble,

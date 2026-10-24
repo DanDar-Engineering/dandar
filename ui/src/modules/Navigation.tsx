@@ -11,7 +11,7 @@ export const Navigation = () => (
     <Sidebar.GroupContent>
       <Sidebar.Menu>
         <NavigationMenuLinkItem
-          name={<span className="pure-logo"><PureLogoIcon size="sm" />Pure-Ed</span>}
+          name="Pure-Ed"
           icon={IconHome}
           path={`/${manifest.ui.path}`}
         />
