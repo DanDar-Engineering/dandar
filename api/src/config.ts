@@ -50,6 +50,15 @@ const envSchema = z.object({
   // The base URL is overridable because the API version is part of the path.
   CHIMEGE_TOKEN: optional,
   CHIMEGE_STT_TOKEN: optional,
+  // Text-to-speech engine. "omnivoice" (k2-fsa/OmniVoice, 600+ languages
+  // including Mongolian) calls a Gradio app: the public Hugging Face Space by
+  // default, or a self-hosted `omnivoice-demo` (GPU, Colab). "chimege" uses
+  // CHIMEGE_TOKEN. Speech-to-text always uses Chimege.
+  TTS_PROVIDER: z.enum(["omnivoice", "chimege"]).default("omnivoice"),
+  OMNIVOICE_URL: z.string().default("https://k2-fsa-omnivoice.hf.space"),
+  OMNIVOICE_GENDER: z.enum(["Auto", "Male", "Female"]).default("Female"),
+  // A Hugging Face token raises the public Space's GPU quota; optional.
+  OMNIVOICE_HF_TOKEN: optional,
   CHIMEGE_API_URL: z.string().default("https://api.chimege.com/v1.2"),
   CHIMEGE_VOICE_ID: optional,
 });

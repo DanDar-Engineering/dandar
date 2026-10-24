@@ -8,7 +8,7 @@ export const MAX_SPEAK_LENGTH = 300;
 const clip = (text: string) =>
   text.length > MAX_SPEAK_LENGTH ? `${text.slice(0, MAX_SPEAK_LENGTH - 1)}…` : text;
 
-// Reads Mongolian text aloud through Chimege. Resolves false when voice is
+// Reads Mongolian text aloud through the API (OmniVoice or Chimege). Resolves false when voice is
 // not configured or the browser refused to play (autoplay without a click).
 export const useSpeak = () => {
   const { data } = useQuery(VOICE_STATUS_QUERY);

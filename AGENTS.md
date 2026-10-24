@@ -152,7 +152,16 @@ See `docs/erxes-integration.md`. In short:
   Every query filters by `userId`; permissions `dandarStudyRead` /
   `dandarStudyWrite`.
 
-## Voice (Chimege)
+## Voice (OmniVoice + Chimege)
+
+- Text-to-speech goes through `api/src/modules/voice/tts.ts`, which picks
+  `TTS_PROVIDER`: `omnivoice` (default) calls the Gradio app at
+  `OMNIVOICE_URL` (`/gradio_api/call/_design_fn`, language `Mongolian`,
+  `OMNIVOICE_GENDER`; `api/src/modules/voice/omnivoice.ts`) and downloads the
+  24 kHz WAV only from that host; `chimege` uses `synthesize` below. The
+  public Space needs no key but has a shared GPU quota (`OMNIVOICE_HF_TOKEN`
+  raises it); self-host with `omnivoice-demo` on a GPU for demos.
+- Speech-to-text is Chimege only.
 
 - `api/src/modules/voice/chimege.ts` owns every Chimege call: `synthesize`
   (POST `<CHIMEGE_API_URL>/synthesize`, `Token` header, plain text in, audio

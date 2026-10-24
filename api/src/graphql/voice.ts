@@ -1,21 +1,18 @@
 import { gql } from "graphql-tag";
 import { GraphQLError } from "graphql";
 import type { Context } from "../connectionResolvers.ts";
-import {
-  MAX_SPEAK_LENGTH,
-  VoiceNotConfiguredError,
-  getVoiceStatus,
-  synthesize,
-  transcribe,
-} from "../modules/voice/chimege.ts";
+import { MAX_SPEAK_LENGTH, VoiceNotConfiguredError, transcribe } from "../modules/voice/chimege.ts";
+import { getVoiceStatus, synthesizeSpeech } from "../modules/voice/tts.ts";
 import { badInput, requireTenantUser } from "./guards.ts";
 
 export const voiceTypeDefs = gql`
   type DandarVoiceStatus {
-    "true when CHIMEGE_TOKEN (text-to-speech) is set"
+    "true when text-to-speech works: OmniVoice, or Chimege with CHIMEGE_TOKEN"
     configured: Boolean!
     "true when a speech-to-text token is set (CHIMEGE_STT_TOKEN or CHIMEGE_TOKEN)"
     sttConfigured: Boolean!
+    "Text-to-speech engine: omnivoice or chimege"
+    provider: String!
   }
 
   type DandarSpeech {
@@ -28,7 +25,7 @@ export const voiceTypeDefs = gql`
   }
 
   extend type Mutation {
-    "Reads Mongolian text aloud with Chimege text-to-speech"
+    "Reads Mongolian text aloud (OmniVoice or Chimege, see TTS_PROVIDER)"
     dandarSpeak(text: String!): DandarSpeech!
     "Turns a 16 kHz mono WAV recording (base64) into Mongolian text with Chimege"
     dandarTranscribe(audioData: String!): String!
@@ -49,12 +46,12 @@ const toVoiceError = (error: unknown) => {
   }
 
   return new GraphQLError(
-    `Chimege request failed: ${error instanceof Error ? error.message : String(error)}`,
+    `Voice request failed: ${error instanceof Error ? error.message : String(error)}`,
     { extensions: { code: "VOICE_PROVIDER_ERROR" } },
   );
 };
 
-// Both mutations spend Chimege quota, so they need a signed-in tenant user.
+// Both mutations spend provider quota, so they need a signed-in tenant user.
 export const voiceResolvers = {
   Query: {
     dandarVoiceStatus: () => getVoiceStatus(),
@@ -68,7 +65,7 @@ export const voiceResolvers = {
       }
 
       try {
-        const { mimeType, data } = await synthesize(speech);
+        const { mimeType, data } = await synthesizeSpeech(speech);
         return { audioUrl: `data:${mimeType};base64,${data}` };
       } catch (error) {
         throw toVoiceError(error);

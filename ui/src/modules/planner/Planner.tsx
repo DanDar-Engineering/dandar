@@ -1037,7 +1037,7 @@ export const Planner = () => {
                     {voiceOn ? "Асаалттай" : "Унтраалттай"}
                   </button>
                 ) : (
-                  <strong title="Plugin-ий .env-д CHIMEGE_TOKEN тавина">Тохируулаагүй</strong>
+                  <strong title="Plugin-ий .env-д TTS_PROVIDER-ийг шалгана">Тохируулаагүй</strong>
                 )}
               </div>
               <button className="dandar:full-soft-button" onClick={() => setModal("preferences")}>

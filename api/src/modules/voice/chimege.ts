@@ -7,12 +7,7 @@ const TIMEOUT_MS = 30_000;
 
 export class VoiceNotConfiguredError extends Error {}
 
-const sttToken = () => env.CHIMEGE_STT_TOKEN ?? env.CHIMEGE_TOKEN;
-
-export const getVoiceStatus = () => ({
-  configured: Boolean(env.CHIMEGE_TOKEN),
-  sttConfigured: Boolean(sttToken()),
-});
+export const sttToken = () => env.CHIMEGE_STT_TOKEN ?? env.CHIMEGE_TOKEN;
 
 const endpoint = (path: string) => `${env.CHIMEGE_API_URL.replace(/\/+$/, "")}/${path}`;
 
