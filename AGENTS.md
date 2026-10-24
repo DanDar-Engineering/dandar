@@ -152,6 +152,24 @@ See `docs/erxes-integration.md`. In short:
   Every query filters by `userId`; permissions `dandarStudyRead` /
   `dandarStudyWrite`.
 
+## Voice (Chimege)
+
+- `api/src/modules/voice/chimege.ts` owns every Chimege call: `synthesize`
+  (POST `<CHIMEGE_API_URL>/synthesize`, `Token` header, plain text in, audio
+  out) and `transcribe` (POST `/transcribe`, 16 kHz mono WAV in, text out).
+  `CHIMEGE_TOKEN` unset = `dandarVoiceStatus.configured` false and the UI
+  hides voice controls; errors are `VOICE_NOT_CONFIGURED` /
+  `VOICE_PROVIDER_ERROR`.
+- GraphQL (`api/src/graphql/voice.ts`): `dandarVoiceStatus`,
+  `dandarSpeak(text)` → `audioUrl` data URL (≤300 chars, mirrored in
+  `ui/src/modules/voice/useSpeak.ts`), `dandarTranscribe(audioData)` (base64
+  WAV ≤30 s, `MAX_AUDIO_CHARS` mirrored in `ui/src/modules/voice/recordWav.ts`).
+- The browser records WebM/Opus; `recordWav.ts` resamples to 16 kHz mono PCM
+  WAV before upload.
+- Planner: a delivered reminder is also read aloud when "Дуут сануулга" is on
+  (per-device, `localStorage` key `dandar:voiceReminders`); each reminder row
+  has a listen button and the task title has a microphone (`MicButton`).
+
 ## Gemma 4 (AI, optional)
 
 - The "Ask Gemma 4" card lives on the settings page, not the overview.

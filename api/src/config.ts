@@ -44,6 +44,12 @@ const envSchema = z.object({
   GEMINI_API_KEY: optional,
   AI_BASE_URL: optional,
   AI_API_KEY: optional,
+  // Chimege (chimege.com) Mongolian text-to-speech and speech-to-text. The
+  // token comes from https://console.chimege.com; the base URL is overridable
+  // because the API version is part of the path.
+  CHIMEGE_TOKEN: optional,
+  CHIMEGE_API_URL: z.string().default("https://api.chimege.com/v1.2"),
+  CHIMEGE_VOICE_ID: optional,
 });
 
 export const env = envSchema.parse(process.env);
