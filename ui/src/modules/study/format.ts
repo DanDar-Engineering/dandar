@@ -13,3 +13,8 @@ export const formatInterval = (minutes: number) => {
 };
 
 export const formatDate = (iso: string) => new Date(iso).toLocaleDateString("mn-MN");
+
+const WEEKDAYS = ["Ня", "Да", "Мя", "Лх", "Пү", "Ба", "Бя"];
+
+// "2026-03-02" → "Да" (the date string is already the student's local day).
+export const weekday = (date: string) => WEEKDAYS[new Date(`${date}T00:00:00Z`).getUTCDay()] ?? "";

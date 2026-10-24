@@ -8,6 +8,7 @@ import { SAMPLE_READ, SAMPLE_WRITE } from "../permissions.ts";
 import { RECORD_ID, assertPage, requireTenantUser, toAiError } from "./guards.ts";
 import { scanResolvers, scanTypeDefs } from "./scan.ts";
 import { studyResolvers, studyTypeDefs } from "./study.ts";
+import { studyPracticeResolvers, studyPracticeTypeDefs } from "./studyPractice.ts";
 import { voiceResolvers, voiceTypeDefs } from "./voice.ts";
 import { voicePlanMutations, voicePlanTypeDefs } from "../modules/planner/voicePlan.ts";
 
@@ -61,6 +62,7 @@ export const typeDefs = gql`
 
   ${studyTypeDefs}
 
+  ${studyPracticeTypeDefs}
   ${voiceTypeDefs}
 
   ${voicePlanTypeDefs}
@@ -96,12 +98,14 @@ export const resolvers = {
     dandarAiStatus: () => getAiStatus(),
     ...scanResolvers.Query,
     ...studyResolvers.Query,
+    ...studyPracticeResolvers.Query,
     ...voiceResolvers.Query,
   },
   Mutation: {
     ...plannerMutations,
     ...scanResolvers.Mutation,
     ...studyResolvers.Mutation,
+    ...studyPracticeResolvers.Mutation,
     ...voiceResolvers.Mutation,
     ...voicePlanMutations,
     dandarSampleAdd: async (

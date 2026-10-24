@@ -1,6 +1,12 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { type CardOptions, MAX_GENERATED_CARDS, cardSystemPrompt, parseDraft } from "./cardGen.ts";
+import {
+  type CardOptions,
+  MAX_GENERATED_CARDS,
+  cardSystemPrompt,
+  mergeDrafts,
+  parseDraft,
+} from "./cardGen.ts";
 
 const NOW = Date.UTC(2026, 0, 1);
 
@@ -55,4 +61,56 @@ test("cardSystemPrompt: тохиргоо prompt-д орно", () => {
   ]) {
     assert.ok(prompt.includes(part), part);
   }
+});
+
+const OPTIONS: CardOptions = {
+  count: 8,
+  level: "medium",
+  kind: "qa",
+  lang: "auto",
+  focus: "",
+  instructions: "",
+};
+
+test("cardSystemPrompt: exam material never asks for its own answers", () => {
+  const exam = cardSystemPrompt(OPTIONS, { mode: "exam", withImage: false });
+  assert.match(exam, /яг өөрсдийнх нь хариуг БҮҮ/);
+  assert.match(exam, /өөрчилсөн шинэ дасгал/);
+  assert.doesNotMatch(cardSystemPrompt(OPTIONS), /БҮҮ гарга/);
+});
+
+test("cardSystemPrompt: image mode tells Gemma to trust the photo", () => {
+  assert.match(cardSystemPrompt(OPTIONS, { mode: "notes", withImage: true }), /зургийг баримтал/);
+  assert.doesNotMatch(cardSystemPrompt(OPTIONS), /зургийг баримтал/);
+});
+
+test("mergeDrafts: first deck and date, no duplicate fronts, capped", () => {
+  const merged = mergeDrafts(
+    [
+      {
+        deck: "",
+        examDate: null,
+        cards: [
+          { front: "Q1", back: "a" },
+          { front: "Q2", back: "b" },
+        ],
+      },
+      {
+        deck: "Хими",
+        examDate: "2026-12-01",
+        cards: [
+          { front: "q1 ", back: "x" },
+          { front: "Q3", back: "c" },
+        ],
+      },
+    ],
+    2,
+  );
+  assert.equal(merged.deck, "Хими");
+  assert.equal(merged.examDate, "2026-12-01");
+  assert.deepEqual(
+    merged.cards.map((card) => card.front),
+    ["Q1", "Q2"],
+  );
+  assert.equal(mergeDrafts([], 5).cards.length, 0);
 });

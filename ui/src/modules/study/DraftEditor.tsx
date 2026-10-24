@@ -14,7 +14,9 @@ export type Draft = {
   deck: string;
   examDate: string;
   cards: DraftCard[];
-  scanId?: string;
+  scanIds: string[];
+  // Exam material became new practice questions; Gemma's answers need a check.
+  examMode?: boolean;
 };
 
 // Gemma's cards can be wrong, so the student checks, edits and drops cards
@@ -59,6 +61,16 @@ export const DraftEditor = ({
         </Card.Description>
       </Card.Header>
       <Card.Content className="dandar:flex dandar:flex-col dandar:gap-4">
+        {draft.examMode ? (
+          <p
+            role="note"
+            className="dandar:rounded-lg dandar:border dandar:border-warning dandar:bg-warning/10 dandar:p-3 dandar:text-sm"
+          >
+            Шалгалтын материалаас ижил төрлийн <b>шинэ дасгал</b> гаргалаа. Материал дахь
+            асуултуудын яг хариуг бэлдэж өгөөгүй. Gemma-ийн шийдэл алдаатай байж болох тул хариу
+            бүрийг шалгаад хадгална уу.
+          </p>
+        ) : null}
         <div className="dandar:grid dandar:gap-3 dandar:sm:grid-cols-2">
           <div className="dandar:flex dandar:flex-col dandar:gap-2">
             <Label htmlFor="dandar-draft-deck">Багц</Label>
@@ -135,7 +147,7 @@ export const DraftEditor = ({
                     back: back.trim(),
                   })),
                   examDate: draft.examDate || null,
-                  scanId: draft.scanId || null,
+                  scanIds: draft.scanIds.length ? draft.scanIds : null,
                 },
               })
             }

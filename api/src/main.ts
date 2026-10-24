@@ -2,6 +2,7 @@ import { startPlugin } from "erxes-api-shared/utils";
 import { manifest } from "./config.ts";
 import { generateModels } from "./connectionResolvers.ts";
 import { resolvers, typeDefs } from "./graphql/schema.ts";
+import { startStudyReminders, rememberTenant } from "./modules/study/reminders.ts";
 import { permissions } from "./permissions.ts";
 
 // startPlugin serves the federated subgraph on /graphql, mounts /health,
@@ -14,8 +15,12 @@ startPlugin({
   meta: { permissions },
   graphql: async () => ({ typeDefs, resolvers }),
   apolloServerContext: async (subdomain, context) => {
+    rememberTenant(subdomain);
     context.models = await generateModels(subdomain, context);
 
     return context;
+  },
+  onServerInit: async () => {
+    startStudyReminders();
   },
 });
