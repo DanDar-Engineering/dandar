@@ -6,11 +6,13 @@ import manifest from "../../../erxes.json" with { type: "json" };
 import { AddCards } from "../modules/study/AddCards";
 import { Exams } from "../modules/study/Exams";
 import { Library } from "../modules/study/Library";
+import { Progress } from "../modules/study/Progress";
+import { Quiz } from "../modules/study/Quiz";
 import { ReviewPanel } from "../modules/study/ReviewPanel";
 import { StudySettings } from "../modules/study/StudySettings";
 
 const { path } = manifest.ui;
-const TABS = ["review", "add", "exams", "library", "settings"] as const;
+const TABS = ["review", "quiz", "add", "exams", "progress", "library", "settings"] as const;
 type StudyTab = (typeof TABS)[number];
 
 // `?tab=add&scan=<id>` is how "Миний материал" hands a scan over to card
@@ -51,21 +53,29 @@ export const StudyPage = () => {
             onValueChange={(value) => setParams(value === "review" ? {} : { tab: value })}
             className="dandar:flex dandar:flex-col dandar:gap-4"
           >
-            <Tabs.List className="dandar:w-fit">
+            <Tabs.List className="dandar:w-fit dandar:max-w-full dandar:overflow-x-auto">
               <Tabs.Trigger value="review">Өнөөдөр</Tabs.Trigger>
+              <Tabs.Trigger value="quiz">Тест</Tabs.Trigger>
               <Tabs.Trigger value="add">Карт нэмэх</Tabs.Trigger>
               <Tabs.Trigger value="exams">Шалгалт</Tabs.Trigger>
+              <Tabs.Trigger value="progress">Ахиц</Tabs.Trigger>
               <Tabs.Trigger value="library">Багц</Tabs.Trigger>
               <Tabs.Trigger value="settings">Тохиргоо</Tabs.Trigger>
             </Tabs.List>
             <Tabs.Content value="review">
               <ReviewPanel />
             </Tabs.Content>
+            <Tabs.Content value="quiz">
+              <Quiz />
+            </Tabs.Content>
             <Tabs.Content value="add">
               <AddCards initialScanId={scanId} />
             </Tabs.Content>
             <Tabs.Content value="exams">
               <Exams />
+            </Tabs.Content>
+            <Tabs.Content value="progress">
+              <Progress />
             </Tabs.Content>
             <Tabs.Content value="library">
               <Library />

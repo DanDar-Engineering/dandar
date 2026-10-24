@@ -157,6 +157,20 @@ See `docs/erxes-integration.md`. In short:
 
 - Review keys: Space/Enter shows the answer, 1–4 grade, S skips (skipping
   only reorders the session; the schedule stays).
+- Every grade is logged in `dandar_study_reviews` (`source: review|quiz`);
+  the Ахиц tab (`dandarStudyProgress`, `logic/progress.ts`) shows active days
+  of the last 7, reviews per local day and a 7-day due forecast. When the
+  queue empties, `SessionSummary` lists hard cards and can draft Gemma cards
+  that ask them from another angle (normal draft → check → save flow).
+- Тест tab (`graphql/studyPractice.ts`, `logic/quiz.ts`): multiple choice
+  built from the student's own cards (wrong choices are other cards' answers,
+  same deck first; no model call). `dandarQuiz` never returns the answer;
+  `dandarQuizAnswer` checks it and reschedules the card (right = know,
+  wrong = forgot).
+- Багц tab: search (`dandarStudyCards(search)`, escaped regex on front/back),
+  edit a card (`dandarCardUpdate`), rename a deck (`dandarDeckRename`, moves
+  its exam unless the target has one) and delete a deck with its exam
+  (`dandarDeckDelete`).
 
 ## Notifications
 

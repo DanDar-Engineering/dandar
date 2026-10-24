@@ -7,6 +7,7 @@ import { SAMPLE_READ, SAMPLE_WRITE } from "../permissions.ts";
 import { RECORD_ID, assertPage, requireTenantUser, toAiError } from "./guards.ts";
 import { scanResolvers, scanTypeDefs } from "./scan.ts";
 import { studyResolvers, studyTypeDefs } from "./study.ts";
+import { studyPracticeResolvers, studyPracticeTypeDefs } from "./studyPractice.ts";
 
 // Every type and operation is prefixed with the plugin name: the gateway
 // composes all plugins into one supergraph, so names must be unique across it.
@@ -55,6 +56,8 @@ export const typeDefs = gql`
   ${scanTypeDefs}
 
   ${studyTypeDefs}
+
+  ${studyPracticeTypeDefs}
 `;
 
 const LABEL_MAX_LENGTH = 200;
@@ -86,10 +89,12 @@ export const resolvers = {
     dandarAiStatus: () => getAiStatus(),
     ...scanResolvers.Query,
     ...studyResolvers.Query,
+    ...studyPracticeResolvers.Query,
   },
   Mutation: {
     ...scanResolvers.Mutation,
     ...studyResolvers.Mutation,
+    ...studyPracticeResolvers.Mutation,
     dandarSampleAdd: async (
       _parent: unknown,
       { label, customerId }: { label: string; customerId?: string | null },

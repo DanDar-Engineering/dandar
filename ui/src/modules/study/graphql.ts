@@ -7,6 +7,7 @@ export const STUDY_COUNTS_QUERY = gql(`
       newCards
       dueCards
       total
+      nextDueAt
     }
   }
 `);
@@ -30,8 +31,8 @@ export const DUE_CARDS_QUERY = gql(`
 `);
 
 export const STUDY_CARDS_QUERY = gql(`
-  query dandarStudyCards($deck: String, $limit: Int!, $offset: Int!) {
-    dandarStudyCards(deck: $deck, limit: $limit, offset: $offset) {
+  query dandarStudyCards($deck: String, $search: String, $limit: Int!, $offset: Int!) {
+    dandarStudyCards(deck: $deck, search: $search, limit: $limit, offset: $offset) {
       _id
       deck
       front
@@ -183,6 +184,72 @@ export const SCAN_CARD_COUNTS_QUERY = gql(`
   }
 `);
 
+export const QUIZ_QUERY = gql(`
+  query dandarQuiz($deck: String, $size: Int!) {
+    dandarQuiz(deck: $deck, size: $size) {
+      cardId
+      deck
+      front
+      choices
+    }
+  }
+`);
+
+export const QUIZ_ANSWER_MUTATION = gql(`
+  mutation dandarQuizAnswer($cardId: String!, $choice: String!) {
+    dandarQuizAnswer(cardId: $cardId, choice: $choice) {
+      correct
+      answer
+      card {
+        _id
+        dueAt
+      }
+    }
+  }
+`);
+
+export const STUDY_PROGRESS_QUERY = gql(`
+  query dandarStudyProgress {
+    dandarStudyProgress {
+      activeDays
+      reviewedThisWeek
+      rememberedRate
+      days {
+        date
+        reviewed
+        remembered
+      }
+      forecast {
+        date
+        due
+      }
+    }
+  }
+`);
+
+export const CARD_UPDATE_MUTATION = gql(`
+  mutation dandarCardUpdate($_id: String!, $deck: String!, $front: String!, $back: String!) {
+    dandarCardUpdate(_id: $_id, deck: $deck, front: $front, back: $back) {
+      _id
+      deck
+      front
+      back
+    }
+  }
+`);
+
+export const DECK_RENAME_MUTATION = gql(`
+  mutation dandarDeckRename($from: String!, $to: String!) {
+    dandarDeckRename(from: $from, to: $to)
+  }
+`);
+
+export const DECK_DELETE_MUTATION = gql(`
+  mutation dandarDeckDelete($deck: String!) {
+    dandarDeckDelete(deck: $deck)
+  }
+`);
+
 // Operations whose result changes after cards are added, reviewed or removed.
 export const STUDY_REFETCH = [
   "dandarStudyCounts",
@@ -191,4 +258,5 @@ export const STUDY_REFETCH = [
   "dandarDeckMastery",
   "dandarExams",
   "dandarScanCardCounts",
+  "dandarStudyProgress",
 ];

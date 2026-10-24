@@ -8,9 +8,11 @@ import type { IScanDocument } from "./modules/scan/db/definitions/scan.ts";
 import {
   type IStudyCardDocument,
   type IStudyExamDocument,
+  type IStudyReviewDocument,
   type IStudySettingsDocument,
   studyCardSchema,
   studyExamSchema,
+  studyReviewSchema,
   studySettingsSchema,
 } from "./modules/study/db/definitions/study.ts";
 
@@ -20,6 +22,7 @@ export interface IModels {
   StudyCards: Model<IStudyCardDocument>;
   StudyExams: Model<IStudyExamDocument>;
   StudySettings: Model<IStudySettingsDocument>;
+  StudyReviews: Model<IStudyReviewDocument>;
 }
 
 /**
@@ -50,6 +53,7 @@ const loadClasses = (db: Connection) => {
     "dandar_study_settings",
     studySettingsSchema,
   );
+  models.StudyReviews = db.model<IStudyReviewDocument>("dandar_study_reviews", studyReviewSchema);
 
   return models;
 };

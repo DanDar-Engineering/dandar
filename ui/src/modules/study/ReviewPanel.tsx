@@ -4,6 +4,7 @@ import { IconBulb, IconPlayerPlay, IconPlayerSkipForward, IconSparkles } from "@
 import { Badge, Button, Card, Empty, Kbd, Skeleton, cn, toast } from "erxes-ui";
 import type { DandarCardGrade, DandarCardHelpMode } from "~/gql/graphql";
 import { formatInterval } from "./format";
+import { type SessionEntry, SessionSummary } from "./SessionSummary";
 import {
   CARD_HELP_MUTATION,
   CARD_REVIEW_MUTATION,
@@ -68,7 +69,8 @@ const WeakDecks = () => {
 export const ReviewPanel = () => {
   const [shown, setShown] = useState(false);
   const [help, setHelp] = useState("");
-  const [done, setDone] = useState(0);
+  const [session, setSession] = useState<SessionEntry[]>([]);
+  const done = session.length;
   // Skipped cards go to the back of this session only; the schedule is unchanged.
   const [skipped, setSkipped] = useState<string[]>([]);
 
@@ -82,7 +84,6 @@ export const ReviewPanel = () => {
     onCompleted: () => {
       setShown(false);
       setHelp("");
-      setDone((count) => count + 1);
     },
     onError: (error) =>
       toast({ title: "Хадгалж чадсангүй", description: error.message, variant: "destructive" }),
@@ -101,7 +102,11 @@ export const ReviewPanel = () => {
   const card = ordered[0];
 
   const grade = (value: DandarCardGrade) => {
-    if (card && !reviewing) review({ variables: { _id: card._id, grade: value } });
+    if (!card || reviewing) return;
+    const entry = { deck: card.deck, front: card.front, back: card.back, grade: value };
+    void review({ variables: { _id: card._id, grade: value } }).then((result) => {
+      if (result.data) setSession((list) => [...list, entry]);
+    });
   };
   const skip = () => {
     if (!card) return;
@@ -190,14 +195,14 @@ export const ReviewPanel = () => {
         ) : null}
       </section>
 
-      {!card ? (
+      {!card && done ? (
+        <SessionSummary entries={session} nextDueAt={stats?.nextDueAt} />
+      ) : !card ? (
         <Card>
           <Card.Content className="dandar:pt-6">
             <Empty>
               <Empty.Header>
-                <Empty.Title>
-                  {done ? `Өнөөдөр ${done} карт давтлаа 🎯` : "Өнөөдөр давтах карт алга 🎯"}
-                </Empty.Title>
+                <Empty.Title>Өнөөдөр давтах карт алга 🎯</Empty.Title>
                 <Empty.Description>Шинэ карт нэмж, эсвэл дараа эргэж ирээрэй.</Empty.Description>
               </Empty.Header>
             </Empty>

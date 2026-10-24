@@ -98,6 +98,8 @@ export const studyTypeDefs = gql`
     newCards: Int!
     dueCards: Int!
     total: Int!
+    "When the next card comes due, if none is due now"
+    nextDueAt: String
   }
 
   type DandarDeckMastery {
@@ -175,7 +177,13 @@ export const studyTypeDefs = gql`
     dandarStudyCounts: DandarStudyCounts!
     "Cards due now, the most forgotten first"
     dandarDueCards(limit: Int = 20): [DandarStudyCard!]!
-    dandarStudyCards(deck: String, limit: Int = 20, offset: Int = 0): [DandarStudyCard!]!
+    "search matches the front or back, ignoring case"
+    dandarStudyCards(
+      deck: String
+      search: String
+      limit: Int = 20
+      offset: Int = 0
+    ): [DandarStudyCard!]!
     dandarDeckMastery: [DandarDeckMastery!]!
     dandarExams: [DandarExam!]!
     dandarStudySettings: DandarStudySettings!
@@ -205,6 +213,11 @@ export const studyTypeDefs = gql`
     dandarExamDelete(deck: String!): Boolean!
     dandarCardHelp(_id: String!, mode: DandarCardHelpMode!): String!
     dandarStudySettingsSave(input: DandarStudySettingsInput!): DandarStudySettings!
+    dandarCardUpdate(_id: String!, deck: String!, front: String!, back: String!): DandarStudyCard!
+    "Moves every card (and the exam) of a deck to a new name; returns the cards moved"
+    dandarDeckRename(from: String!, to: String!): Int!
+    "Deletes a deck's cards and exam; returns the cards deleted"
+    dandarDeckDelete(deck: String!): Int!
   }
 `;
 
@@ -213,7 +226,7 @@ const MAX_CARDS_READ = 5000;
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 const GRADES: Grade[] = ["forgot", "unsure", "know", "easy"];
 
-const toState = (card: IStudyCardDocument): CardState => ({
+export const toState = (card: IStudyCardDocument): CardState => ({
   id: String(card._id),
   topicId: card.topicId,
   stability: card.stability,
@@ -223,7 +236,7 @@ const toState = (card: IStudyCardDocument): CardState => ({
   dueAt: card.dueAt.getTime(),
 });
 
-const examTimes = async (context: Context, userId: string) => {
+export const examTimes = async (context: Context, userId: string) => {
   const exams = await context.models.StudyExams.find({ userId })
     .limit(200)
     .lean<{ deck: string; examAt: Date }[]>();
@@ -231,7 +244,11 @@ const examTimes = async (context: Context, userId: string) => {
   return new Map(exams.map((exam) => [exam.deck, exam.examAt.getTime()]));
 };
 
-const toCardOutput = (card: IStudyCardDocument, now: number, exams?: Map<string, number>) => {
+export const toCardOutput = (
+  card: IStudyCardDocument,
+  now: number,
+  exams?: Map<string, number>,
+) => {
   const state = toState(card);
   const examAt = exams?.get(card.topicId) ?? null;
 
@@ -281,7 +298,7 @@ const cleanText = (value: string, label: string, max = CARD_TEXT_MAX_LENGTH) => 
 
 const cleanDeck = (value: string) => cleanText(value, "Deck", DECK_MAX_LENGTH);
 
-const assertRecordId = (value: string, label: string) => {
+export const assertRecordId = (value: string, label: string) => {
   if (!RECORD_ID.test(value)) {
     throw badInput(`Invalid ${label}`);
   }
@@ -374,7 +391,19 @@ export const studyResolvers = {
         context.models.StudyCards.countDocuments({ userId, dueAt: { $lte: now }, reviews: 0 }),
       ]);
 
-      return { total, dueCards: due, newCards: fresh };
+      const next =
+        due + fresh === 0
+          ? await context.models.StudyCards.findOne({ userId }, { dueAt: 1 })
+              .sort({ dueAt: 1 })
+              .lean<{ dueAt: Date }>()
+          : null;
+
+      return {
+        total,
+        dueCards: due,
+        newCards: fresh,
+        nextDueAt: next?.dueAt.toISOString() ?? null,
+      };
     },
     dandarDueCards: async (_parent: unknown, { limit = 20 }: PageArgs, context: Context) => {
       const userId = requireTenantUser(context);
@@ -394,15 +423,23 @@ export const studyResolvers = {
     },
     dandarStudyCards: async (
       _parent: unknown,
-      { deck, limit = 20, offset = 0 }: PageArgs & { deck?: string | null },
+      {
+        deck,
+        search,
+        limit = 20,
+        offset = 0,
+      }: PageArgs & { deck?: string | null; search?: string | null },
       context: Context,
     ) => {
       const userId = requireTenantUser(context);
       await context.checkPermission(STUDY_READ);
       assertPage(limit, offset);
+      const term = search?.trim().slice(0, 100) ?? "";
+      const pattern = term ? new RegExp(term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i") : null;
       const docs = await context.models.StudyCards.find({
         userId,
         ...(deck ? { topicId: deck } : {}),
+        ...(pattern ? { $or: [{ front: pattern }, { back: pattern }] } : {}),
       })
         .sort({ createdAt: -1, _id: -1 })
         .skip(offset)
@@ -509,7 +546,17 @@ export const studyResolvers = {
         lastReviewedAt: new Date(next.lastReviewedAt ?? now),
         dueAt: new Date(next.dueAt),
       });
-      await doc.save();
+      await Promise.all([
+        doc.save(),
+        context.models.StudyReviews.create({
+          userId,
+          cardId: _id,
+          deck: doc.topicId,
+          grade,
+          source: "review",
+          at: new Date(now),
+        }),
+      ]);
 
       return toCardOutput(doc.toObject(), now);
     },
@@ -687,6 +734,67 @@ export const studyResolvers = {
       );
 
       return settings;
+    },
+    dandarCardUpdate: async (
+      _parent: unknown,
+      args: { _id: string; deck: string; front: string; back: string },
+      context: Context,
+    ) => {
+      const userId = requireTenantUser(context);
+      await context.checkPermission(STUDY_WRITE);
+      assertRecordId(args._id, "_id");
+      const doc = await context.models.StudyCards.findOneAndUpdate(
+        { _id: args._id, userId },
+        {
+          $set: {
+            topicId: cleanDeck(args.deck),
+            front: cleanText(args.front, "Front"),
+            back: cleanText(args.back, "Back"),
+          },
+        },
+        { new: true },
+      ).lean<IStudyCardDocument>();
+      if (!doc) throw badInput("Card not found");
+
+      return toCardOutput(doc, Date.now());
+    },
+    dandarDeckRename: async (
+      _parent: unknown,
+      args: { from: string; to: string },
+      context: Context,
+    ) => {
+      const userId = requireTenantUser(context);
+      await context.checkPermission(STUDY_WRITE);
+      const from = cleanDeck(args.from);
+      const to = cleanDeck(args.to);
+      if (from === to) return 0;
+      // The target deck's own exam wins; otherwise the renamed deck keeps its exam.
+      const [moved] = await Promise.all([
+        context.models.StudyCards.updateMany({ userId, topicId: from }, { $set: { topicId: to } }),
+        (async () => {
+          if (await context.models.StudyExams.exists({ userId, deck: to })) {
+            await context.models.StudyExams.deleteOne({ userId, deck: from });
+          } else {
+            await context.models.StudyExams.updateOne(
+              { userId, deck: from },
+              { $set: { deck: to } },
+            );
+          }
+        })(),
+      ]);
+
+      return moved.modifiedCount;
+    },
+    dandarDeckDelete: async (_parent: unknown, { deck }: { deck: string }, context: Context) => {
+      const userId = requireTenantUser(context);
+      await context.checkPermission(STUDY_WRITE);
+      const name = cleanDeck(deck);
+      const [deleted] = await Promise.all([
+        context.models.StudyCards.deleteMany({ userId, topicId: name }),
+        context.models.StudyExams.deleteOne({ userId, deck: name }),
+      ]);
+
+      return deleted.deletedCount;
     },
     dandarCardHelp: async (
       _parent: unknown,

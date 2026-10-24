@@ -77,3 +77,27 @@ export const studySettingsSchema = schemaWrapper(
     quietEnd: { type: Number, required: true },
   }),
 );
+
+export interface IStudyReview {
+  userId: string;
+  cardId: string;
+  deck: string;
+  // forgot | unsure | know | easy; a quiz answer is stored as know or forgot
+  grade: string;
+  source: "review" | "quiz";
+  at: Date;
+}
+
+export interface IStudyReviewDocument extends IStudyReview, Document {}
+
+// One row per graded card: feeds the progress page and session history.
+export const studyReviewSchema = schemaWrapper(
+  new Schema({
+    userId: { type: String, required: true },
+    cardId: { type: String, required: true },
+    deck: { type: String, required: true },
+    grade: { type: String, required: true },
+    source: { type: String, enum: ["review", "quiz"], required: true },
+    at: { type: Date, required: true, default: Date.now },
+  }).index({ userId: 1, at: -1 }),
+);
