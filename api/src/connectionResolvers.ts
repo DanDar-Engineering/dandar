@@ -3,9 +3,12 @@ import { createGenerateModels } from "erxes-api-shared/utils";
 import type { Connection } from "mongoose";
 import { type ISampleModel, loadSampleClass } from "./modules/sample/db/models/Sample.ts";
 import type { ISampleDocument } from "./modules/sample/db/definitions/sample.ts";
+import { type IScanModel, loadScanClass } from "./modules/scan/db/models/Scan.ts";
+import type { IScanDocument } from "./modules/scan/db/definitions/scan.ts";
 
 export interface IModels {
   Samples: ISampleModel;
+  Scans: IScanModel;
 }
 
 /**
@@ -29,6 +32,7 @@ const loadClasses = (db: Connection) => {
     "dandar_samples",
     loadSampleClass(models),
   );
+  models.Scans = db.model<IScanDocument, IScanModel>("dandar_scans", loadScanClass(models));
 
   return models;
 };

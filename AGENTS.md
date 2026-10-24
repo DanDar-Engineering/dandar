@@ -93,6 +93,32 @@ See `docs/erxes-integration.md`. In short:
 - `BUILD.md` is the step-by-step guide for adding a module; keep it in sync
   when the sample's structure changes.
 
+## Scans (Gemma 4 OCR)
+
+- Route `/dandar/scans` (`ui/src/pages/ScansPage.tsx`, `ui/src/modules/scan/`)
+  with a student tab (`ScanWizard` + own list) and a teacher tab (inbox).
+  `ScanWizard` follows the Pure-Ed "Скан" design: upload → check → save, the
+  photo beside editable fields with confidence badges.
+- Nothing is stored before the student confirms: `dandarScanRead` only reads,
+  `dandarScanSave` stores the checked fields. Field limits are mirrored in
+  `FIELD_LIMITS` (`ui/src/modules/scan/ScanWizard.tsx`).
+- Roles follow the record, not a setting: `studentId` is the uploader,
+  `teacherId` an erxes team member picked with `SelectMember`. Every model
+  query filters by the acting user (`api/src/modules/scan/db/models/Scan.ts`).
+- Permissions: `dandarScansSubmit` (upload, own list, send to teacher) and
+  `dandarScansReview` (inbox, review).
+- `dandarScanRead` runs `readScan` (`api/src/modules/scan/readScan.ts`):
+  one vision call transcribes, a second sees the photo plus text and returns
+  JSON `{kind, title, subject, summary, confidence}`; `confident` is false for
+  low confidence or `[?]` in the text. On save, `note` keeps a summary; `exam`
+  goes to `teacherId` (`sent`) or waits for one (`awaiting_teacher`).
+- Photos are stored as base64 in `dandar_scans` and returned only by
+  `dandarScanDetail` (`imageUrl`); lists project them out. The UI re-encodes
+  to JPEG ≤1600 px because the Apollo Router rejects bodies over 2 MB;
+  `MAX_IMAGE_CHARS` (1 500 000) is mirrored in `ui/src/modules/scan/image.ts`.
+- `api/src/modules/scan/constants.ts` must not import mongoose or
+  erxes-api-shared: `print-schema` loads it and would otherwise never exit.
+
 ## Gemma 4 (AI, optional)
 
 - The "Ask Gemma 4" card lives on the settings page, not the overview.
@@ -101,7 +127,10 @@ See `docs/erxes-integration.md`. In short:
   `getAiStatus`); resolvers never call a provider directly. `AI_PROVIDER`
   selects `gemini` (Gemini API `generateContent`, thought parts dropped) or
   `openai` (any OpenAI-compatible `/chat/completions`: Ollama, DigitalOcean).
-  Calls use Node's `fetch` with a 60 s timeout; there is no AI SDK dependency.
+  Calls use Node's `fetch` with a 60 s timeout (180 s with an image); there is
+  no AI SDK dependency. `askGemma`'s options take an `image` (base64 +
+  mimeType: Gemini `inlineData`, OpenAI-compatible `image_url` data URL) and a
+  `temperature`.
 - `TUTOR_SYSTEM_PROMPT` stays server-side; the UI sends only the question.
   `MAX_PROMPT_LENGTH` (4000) is mirrored in `ui/src/modules/ai/AskGemma.tsx`.
 - `dandarAsk` is a mutation: it spends provider quota. Missing configuration

@@ -4,6 +4,8 @@ import { manifest } from "./config.ts";
 // Action names are global across the platform, not local to this plugin.
 export const SAMPLE_READ = "dandarSamplesRead";
 export const SAMPLE_WRITE = "dandarSamplesWrite";
+export const SCAN_SUBMIT = "dandarScansSubmit";
+export const SCAN_REVIEW = "dandarScansReview";
 
 export const permissions: IPermissionConfig = {
   plugin: manifest.name,
@@ -26,6 +28,26 @@ export const permissions: IPermissionConfig = {
           name: SAMPLE_WRITE,
           title: "Create sample records",
           description: `Create ${manifest.title} sample records`,
+        },
+      ],
+    },
+    {
+      name: "dandarScans",
+      description: `${manifest.title} scanned notes and exam materials`,
+      scopeField: null,
+      ownerFields: [],
+      // Queries already limit records to the uploader or the assigned teacher.
+      scopes: [{ name: "own", description: "Own uploads and materials sent to me" }],
+      actions: [
+        {
+          name: SCAN_SUBMIT,
+          title: "Scan materials (student)",
+          description: "Upload photos, read them with Gemma 4 and send exam materials to a teacher",
+        },
+        {
+          name: SCAN_REVIEW,
+          title: "Review exam materials (teacher)",
+          description: "See exam materials students sent and answer them",
         },
       ],
     },

@@ -11,6 +11,20 @@ export const TUTOR_SYSTEM_PROMPT = [
 export const MAX_PROMPT_LENGTH = 4000;
 
 const TIMEOUT_MS = 60_000;
+// Reading a photo with the 31B model takes longer than a text answer.
+const VISION_TIMEOUT_MS = 180_000;
+
+// A base64-encoded image sent next to the prompt (no data: prefix).
+export type AiImage = {
+  mimeType: string;
+  data: string;
+};
+
+type CallOptions = {
+  image?: AiImage;
+  // 0 for transcription and classification, where creativity only hurts.
+  temperature?: number;
+};
 
 export type AiAnswer = {
   text: string;
@@ -43,10 +57,19 @@ type GeminiResponse = {
   error?: { message?: string };
 };
 
-const askGemini = async (system: string, prompt: string): Promise<string> => {
+const askGemini = async (
+  system: string,
+  prompt: string,
+  { image, temperature }: CallOptions,
+): Promise<string> => {
   if (!env.GEMINI_API_KEY) {
     throw new AiNotConfiguredError("GEMINI_API_KEY is not set in the plugin .env");
   }
+
+  const parts = [
+    ...(image ? [{ inlineData: { mimeType: image.mimeType, data: image.data } }] : []),
+    { text: prompt },
+  ];
 
   const response = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(env.AI_MODEL)}:generateContent`,
@@ -55,9 +78,10 @@ const askGemini = async (system: string, prompt: string): Promise<string> => {
       headers: { "Content-Type": "application/json", "x-goog-api-key": env.GEMINI_API_KEY },
       body: JSON.stringify({
         systemInstruction: { parts: [{ text: system }] },
-        contents: [{ role: "user", parts: [{ text: prompt }] }],
+        contents: [{ role: "user", parts }],
+        ...(temperature === undefined ? {} : { generationConfig: { temperature } }),
       }),
-      signal: AbortSignal.timeout(TIMEOUT_MS),
+      signal: AbortSignal.timeout(image ? VISION_TIMEOUT_MS : TIMEOUT_MS),
     },
   );
   const data = await readJson<GeminiResponse>(response);
@@ -82,10 +106,22 @@ type ChatCompletionResponse = {
   error?: { message?: string } | string;
 };
 
-const askOpenAiCompatible = async (system: string, prompt: string): Promise<string> => {
+const askOpenAiCompatible = async (
+  system: string,
+  prompt: string,
+  { image, temperature }: CallOptions,
+): Promise<string> => {
   if (!env.AI_BASE_URL) {
     throw new AiNotConfiguredError("AI_BASE_URL is not set in the plugin .env");
   }
+
+  // Ollama and vLLM accept images as base64 data URLs in image_url parts.
+  const content = image
+    ? [
+        { type: "image_url", image_url: { url: `data:${image.mimeType};base64,${image.data}` } },
+        { type: "text", text: prompt },
+      ]
+    : prompt;
 
   const response = await fetch(`${env.AI_BASE_URL.replace(/\/+$/, "")}/chat/completions`, {
     method: "POST",
@@ -97,10 +133,11 @@ const askOpenAiCompatible = async (system: string, prompt: string): Promise<stri
       model: env.AI_MODEL,
       messages: [
         { role: "system", content: system },
-        { role: "user", content: prompt },
+        { role: "user", content },
       ],
+      ...(temperature === undefined ? {} : { temperature }),
     }),
-    signal: AbortSignal.timeout(TIMEOUT_MS),
+    signal: AbortSignal.timeout(image ? VISION_TIMEOUT_MS : TIMEOUT_MS),
   });
   const data = await readJson<ChatCompletionResponse>(response);
 
@@ -115,11 +152,12 @@ const askOpenAiCompatible = async (system: string, prompt: string): Promise<stri
 export const askGemma = async (
   prompt: string,
   system: string = TUTOR_SYSTEM_PROMPT,
+  options: CallOptions = {},
 ): Promise<AiAnswer> => {
   const text =
     env.AI_PROVIDER === "gemini"
-      ? await askGemini(system, prompt)
-      : await askOpenAiCompatible(system, prompt);
+      ? await askGemini(system, prompt, options)
+      : await askOpenAiCompatible(system, prompt, options);
 
   if (!text) {
     throw new Error("The model returned an empty answer");
