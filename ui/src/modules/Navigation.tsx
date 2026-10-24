@@ -1,17 +1,18 @@
-import { IconCards, IconSandbox, IconScan, IconSettings } from "@tabler/icons-react";
+import { IconCards, IconScan, IconSettings, IconHome } from "@tabler/icons-react";
 // Root import on purpose: core-ui shares `erxes-ui` as a Module Federation
 // singleton keyed on the bare specifier, so deep imports would bundle a second
 // private copy instead of reusing the host's.
 import { NavigationMenuLinkItem, Sidebar } from "erxes-ui";
 import manifest from "../../../erxes.json" with { type: "json" };
+import { PureLogoIcon } from "../components/PureLogo";
 
 export const Navigation = () => (
   <Sidebar.Group>
     <Sidebar.GroupContent>
       <Sidebar.Menu>
         <NavigationMenuLinkItem
-          name={manifest.title}
-          icon={IconSandbox}
+          name={<span className="pure-logo"><PureLogoIcon size="sm" />Pure-Ed</span>}
+          icon={IconHome}
           path={`/${manifest.ui.path}`}
         />
         <NavigationMenuLinkItem

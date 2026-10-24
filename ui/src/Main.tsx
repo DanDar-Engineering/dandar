@@ -4,6 +4,7 @@ import { Route, Routes } from "react-router";
 import { AppLayout } from "erxes-ui";
 import manifest from "../../erxes.json" with { type: "json" };
 import { Navigation } from "./modules/Navigation";
+import { PureLogo } from "./components/PureLogo";
 
 const IndexPage = lazy(() =>
   import("./pages/IndexPage").then((module) => ({
@@ -23,7 +24,7 @@ const SettingsPage = lazy(() =>
 // core-ui mounts this component at `/<path>/*`; routes below are relative to
 // it. It resolves the component by the PascalCase expose name.
 export const Dandar = () => (
-  <AppLayout id={manifest.name} title={manifest.title} sidebar={<Navigation />}>
+  <AppLayout id={manifest.name} title={<PureLogo size="md" />} sidebar={<Navigation />}>
     <Suspense fallback={<div role="status">Loading…</div>}>
       <Routes>
         <Route index element={<IndexPage />} />
