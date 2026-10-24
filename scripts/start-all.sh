@@ -39,6 +39,38 @@ wait_port() {
   return 1
 }
 
+start_backend() {
+  # A gateway that crashed leaves nodemon waiting for file changes, core-api
+  # holding :3300 and possibly its Apollo Router holding :50000; clear them.
+  if [ -f "$LOG_DIR/erxes-backend.pid" ]; then
+    kill -- "-$(cat "$LOG_DIR/erxes-backend.pid")" 2> /dev/null || true
+    sleep 2
+  fi
+  pkill -x router 2> /dev/null || true
+  start erxes-backend "$ERXES_DIR" pnpm dev:core-api
+}
+
+# The first start downloads Apollo Router (minutes on venue wifi), and the
+# gateway then gives it 15 s to come up; on a busy machine it misses that and
+# exits instead of retrying. Restart the backend once when that happens.
+wait_gateway() {
+  local restarted=0
+  for _ in $(seq 1 200); do
+    if listening 4000; then
+      echo "ready: erxes gateway (:4000)"
+      return 0
+    fi
+    if [ "$restarted" -eq 0 ] && grep -q "app crashed" "$LOG_DIR/erxes-backend.log" 2> /dev/null; then
+      echo "erxes backend crashed while starting; restarting it once"
+      start_backend
+      restarted=1
+    fi
+    sleep 3
+  done
+  echo "TIMEOUT: erxes gateway (:4000) did not start; see $LOG_DIR/erxes-backend.log" >&2
+  return 1
+}
+
 # Every service exits when MongoDB is unreachable; the usual cause is a new
 # public IP that Atlas Network Access does not allow yet.
 if ! (cd "$PLUGIN_DIR/api" && timeout 30 node --env-file=../.env -e '
@@ -51,12 +83,8 @@ fi
 listening 3399 || start plugin-api "$PLUGIN_DIR" pnpm run dev:api
 wait_port 3399 "plugin API" 40
 
-if ! listening 4000; then
-  # A gateway that crashed can leave its Apollo Router holding port 50000.
-  pkill -x router 2>/dev/null || true
-  start erxes-backend "$ERXES_DIR" pnpm dev:core-api
-fi
-wait_port 4000 "erxes gateway" 80
+listening 4000 || start_backend
+wait_gateway
 
 listening 3001 || start core-ui "$ERXES_DIR" pnpm nx serve core-ui
 listening 3099 || start plugin-ui "$PLUGIN_DIR" pnpm run dev:ui
