@@ -96,7 +96,7 @@ const SUBJECT_MAX_LENGTH = 100;
 const SUMMARY_MAX_LENGTH = 4000;
 const TEXT_MAX_LENGTH = 20_000;
 
-const assertImage = (mimeType: string, imageData: string) => {
+export const assertImage = (mimeType: string, imageData: string) => {
   if (!IMAGE_TYPES.has(mimeType)) {
     throw badInput("Upload a JPEG, PNG or WebP image");
   }
@@ -151,12 +151,18 @@ type PageArgs = { limit?: number; offset?: number };
 
 export const scanResolvers = {
   Query: {
-    dandarScans: async (_parent: unknown, { limit = 20, offset = 0 }: PageArgs, context: Context) => {
+    dandarScans: async (
+      _parent: unknown,
+      { limit = 20, offset = 0 }: PageArgs,
+      context: Context,
+    ) => {
       const userId = requireTenantUser(context);
       await context.checkPermission(SCAN_SUBMIT);
       assertPage(limit, offset);
 
-      return (await context.models.Scans.listByStudent(userId, { limit, offset })).map(toScanOutput);
+      return (await context.models.Scans.listByStudent(userId, { limit, offset })).map(
+        toScanOutput,
+      );
     },
     dandarScansInbox: async (
       _parent: unknown,
@@ -167,7 +173,9 @@ export const scanResolvers = {
       await context.checkPermission(SCAN_REVIEW);
       assertPage(limit, offset);
 
-      return (await context.models.Scans.listByTeacher(userId, { limit, offset })).map(toScanOutput);
+      return (await context.models.Scans.listByTeacher(userId, { limit, offset })).map(
+        toScanOutput,
+      );
     },
     dandarScanDetail: async (_parent: unknown, { _id }: { _id: string }, context: Context) => {
       const userId = requireTenantUser(context);

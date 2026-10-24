@@ -6,6 +6,8 @@ export const SAMPLE_READ = "dandarSamplesRead";
 export const SAMPLE_WRITE = "dandarSamplesWrite";
 export const SCAN_SUBMIT = "dandarScansSubmit";
 export const SCAN_REVIEW = "dandarScansReview";
+export const STUDY_READ = "dandarStudyRead";
+export const STUDY_WRITE = "dandarStudyWrite";
 
 export const permissions: IPermissionConfig = {
   plugin: manifest.name,
@@ -48,6 +50,26 @@ export const permissions: IPermissionConfig = {
           name: SCAN_REVIEW,
           title: "Review exam materials (teacher)",
           description: "See exam materials students sent and answer them",
+        },
+      ],
+    },
+    {
+      name: "dandarStudy",
+      description: `${manifest.title} flashcards, spaced repetition and exam preparation`,
+      scopeField: null,
+      ownerFields: [],
+      // Every query filters by the signed-in student.
+      scopes: [{ name: "own", description: "Own cards and exams" }],
+      actions: [
+        {
+          name: STUDY_READ,
+          title: "Study cards (student)",
+          description: "See own cards, due reviews, deck progress and exams, and ask for card help",
+        },
+        {
+          name: STUDY_WRITE,
+          title: "Edit cards (student)",
+          description: "Add, generate with Gemma 4, review and delete own cards and set exam dates",
         },
       ],
     },

@@ -14,7 +14,11 @@ export interface IScanModel extends Model<IScanDocument> {
   listByTeacher(teacherId: string, page: Page): Promise<ScanSummaryRecord[]>;
   findVisible(_id: string, userId: string): Promise<ScanRecord | null>;
   createScan(doc: Omit<IScan, "createdAt">): Promise<ScanSummaryRecord>;
-  sendToTeacher(_id: string, studentId: string, teacherId: string): Promise<ScanSummaryRecord | null>;
+  sendToTeacher(
+    _id: string,
+    studentId: string,
+    teacherId: string,
+  ): Promise<ScanSummaryRecord | null>;
   review(_id: string, teacherId: string, comment: string): Promise<ScanSummaryRecord | null>;
 }
 
@@ -46,7 +50,9 @@ export const loadScanClass = (models: IModels) => {
     }
 
     public static async createScan(doc: Omit<IScan, "createdAt">) {
-      const { imageData: _image, ...scan } = (await models.Scans.create(doc)).toObject<ScanRecord>();
+      const { imageData: _image, ...scan } = (
+        await models.Scans.create(doc)
+      ).toObject<ScanRecord>();
 
       return scan;
     }

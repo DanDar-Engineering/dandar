@@ -6,6 +6,7 @@ import { MAX_PROMPT_LENGTH, askGemma, getAiStatus } from "../modules/ai/gemma.ts
 import { SAMPLE_READ, SAMPLE_WRITE } from "../permissions.ts";
 import { RECORD_ID, assertPage, requireTenantUser, toAiError } from "./guards.ts";
 import { scanResolvers, scanTypeDefs } from "./scan.ts";
+import { studyResolvers, studyTypeDefs } from "./study.ts";
 
 // Every type and operation is prefixed with the plugin name: the gateway
 // composes all plugins into one supergraph, so names must be unique across it.
@@ -52,6 +53,8 @@ export const typeDefs = gql`
   }
 
   ${scanTypeDefs}
+
+  ${studyTypeDefs}
 `;
 
 const LABEL_MAX_LENGTH = 200;
@@ -82,9 +85,11 @@ export const resolvers = {
     },
     dandarAiStatus: () => getAiStatus(),
     ...scanResolvers.Query,
+    ...studyResolvers.Query,
   },
   Mutation: {
     ...scanResolvers.Mutation,
+    ...studyResolvers.Mutation,
     dandarSampleAdd: async (
       _parent: unknown,
       { label, customerId }: { label: string; customerId?: string | null },
