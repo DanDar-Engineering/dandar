@@ -66,6 +66,31 @@ const update = (context: Context, version: number, action: string, data: unknown
     { version, action, data: JSON.stringify(data) },
     context,
   );
+
+test("applying a replacement preview preserves its energy and availability policy", async () => {
+  const context = fixture().context("alice");
+  const start = new Date(Date.now() + 86400000);
+  start.setUTCHours(12, 0, 0, 0);
+  await update(context, 0, "task", task(new Date(start.getTime() + 86400000).toISOString()));
+  const block = {
+    id: "old", taskId: "task1", start: start.toISOString(),
+    end: new Date(start.getTime() + 25 * 60000).toISOString(),
+    status: "planned", actualMinutes: 0,
+  };
+  await update(context, 1, "confirm", [block]);
+  const windows = [{ start: block.start, end: new Date(start.getTime() + 3600000).toISOString() }];
+  const request = {
+    blocks: [{ ...block, id: "replacement", breakMinutes: 10 }],
+    replaceIds: ["old"],
+    policy: JSON.stringify({ windows, energy: "low", breakMinutes: 10, dailyCaps: {} }),
+  };
+  await assert.rejects(() => update(context, 1, "applyPlan", request), /Өөр табаас/);
+  const result = await update(context, 2, "applyPlan", request);
+  const state = JSON.parse(result.data) as PlannerState;
+  assert.deepEqual(state.blocks.map((b) => b.id), ["replacement"]);
+  assert.equal(state.preferences.energy, "low");
+  assert.deepEqual(state.availability, windows);
+});
 test("planner requires authenticated tenant and checks platform permissions", async () => {
   const f = fixture();
   await assert.rejects(() => plannerQueries.dandarPlanner(null, null, f.context("")), /Login/);

@@ -152,6 +152,35 @@ See `docs/erxes-integration.md`. In short:
   Every query filters by `userId`; permissions `dandarStudyRead` /
   `dandarStudyWrite`.
 
+## Voice (OmniVoice + Chimege)
+
+- Text-to-speech goes through `api/src/modules/voice/tts.ts`, which picks
+  `TTS_PROVIDER`: `omnivoice` (default) calls the Gradio app at
+  `OMNIVOICE_URL` (`/gradio_api/call/_design_fn`, language `Mongolian`,
+  `OMNIVOICE_GENDER`; `api/src/modules/voice/omnivoice.ts`) and downloads the
+  24 kHz WAV only from that host; `chimege` uses `synthesize` below. The
+  public Space needs no key but has a shared GPU quota (`OMNIVOICE_HF_TOKEN`
+  raises it); self-host with `omnivoice-demo` on a GPU for demos.
+- Speech-to-text is Chimege only.
+
+- `api/src/modules/voice/chimege.ts` owns every Chimege call: `synthesize`
+  (POST `<CHIMEGE_API_URL>/synthesize`, `Token` header, plain text in, audio
+  out) and `transcribe` (POST `/transcribe`, 16 kHz mono WAV in, text out).
+  The console issues one token per API: `CHIMEGE_TOKEN` (TTS) and
+  `CHIMEGE_STT_TOKEN` (STT, falls back to `CHIMEGE_TOKEN`). A missing token
+  makes `dandarVoiceStatus.configured` / `sttConfigured` false and the UI
+  hides that control; errors are `VOICE_NOT_CONFIGURED` /
+  `VOICE_PROVIDER_ERROR`.
+- GraphQL (`api/src/graphql/voice.ts`): `dandarVoiceStatus`,
+  `dandarSpeak(text)` → `audioUrl` data URL (≤300 chars, mirrored in
+  `ui/src/modules/voice/useSpeak.ts`), `dandarTranscribe(audioData)` (base64
+  WAV ≤30 s, `MAX_AUDIO_CHARS` mirrored in `ui/src/modules/voice/recordWav.ts`).
+- The browser records WebM/Opus; `recordWav.ts` resamples to 16 kHz mono PCM
+  WAV before upload.
+- Planner: a delivered reminder is also read aloud when "Дуут сануулга" is on
+  (per-device, `localStorage` key `dandar:voiceReminders`); each reminder row
+  has a listen button and the task title has a microphone (`MicButton`).
+
 ## Gemma 4 (AI, optional)
 
 - The "Ask Gemma 4" card lives on the settings page, not the overview.
