@@ -2,6 +2,7 @@ import { useMutation, useQuery } from "@apollo/client";
 import { useEffect, useState } from "react";
 import { IconCheck, IconPencil, IconSearch, IconTrash, IconX } from "@tabler/icons-react";
 import { Badge, Button, Card, Empty, Input, Skeleton, Textarea, toast } from "erxes-ui";
+import { SampleCardsButton } from "./SampleCardsButton";
 import {
   CARD_DELETE_MUTATION,
   CARD_UPDATE_MUTATION,
@@ -333,6 +334,11 @@ export const Library = () => {
                   {search ? "Өөр үгээр хайж үзнэ үү." : "«Карт нэмэх» хэсгээс эхэлнэ үү."}
                 </Empty.Description>
               </Empty.Header>
+              {search || deck ? null : (
+                <Empty.Content>
+                  <SampleCardsButton variant="outline" />
+                </Empty.Content>
+              )}
             </Empty>
           ) : (
             <ul className="dandar:divide-y dandar:divide-border">

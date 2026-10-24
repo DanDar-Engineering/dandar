@@ -5,6 +5,7 @@ import { Button, Card, Input, Label, Tabs, Textarea, toast } from "erxes-ui";
 import type { DandarCardKind, DandarCardLang, DandarCardLevel } from "~/gql/graphql";
 import { ACCEPTED_IMAGE_TYPES, type PreparedImage, prepareImage } from "../scan/image";
 import { type Draft, DraftEditor } from "./DraftEditor";
+import { SampleCardsButton } from "./SampleCardsButton";
 import { ScanPicker } from "./ScanPicker";
 import {
   CARDS_DRAFT_MUTATION,
@@ -198,6 +199,10 @@ const ManualForm = ({ decks }: { decks: string[] }) => {
         >
           Нэмэх
         </Button>
+        <div className="dandar:flex dandar:flex-wrap dandar:items-center dandar:gap-2 dandar:border-t dandar:border-border dandar:pt-3 dandar:text-sm dandar:text-muted-foreground">
+          Туршиж үзэх үү?
+          <SampleCardsButton variant="outline" />
+        </div>
       </Card.Content>
     </Card>
   );

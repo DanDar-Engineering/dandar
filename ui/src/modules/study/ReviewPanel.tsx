@@ -4,6 +4,7 @@ import { IconBulb, IconPlayerPlay, IconPlayerSkipForward, IconSparkles } from "@
 import { Badge, Button, Card, Empty, Kbd, Skeleton, cn, toast } from "erxes-ui";
 import type { DandarCardGrade, DandarCardHelpMode } from "~/gql/graphql";
 import { formatInterval } from "./format";
+import { SampleCardsButton } from "./SampleCardsButton";
 import { type SessionEntry, SessionSummary } from "./SessionSummary";
 import {
   CARD_HELP_MUTATION,
@@ -203,8 +204,17 @@ export const ReviewPanel = () => {
             <Empty>
               <Empty.Header>
                 <Empty.Title>Өнөөдөр давтах карт алга 🎯</Empty.Title>
-                <Empty.Description>Шинэ карт нэмж, эсвэл дараа эргэж ирээрэй.</Empty.Description>
+                <Empty.Description>
+                  {stats?.total
+                    ? "Шинэ карт нэмж, эсвэл дараа эргэж ирээрэй."
+                    : "Эхлэх гэж байна уу? Жишээ картаар давтлага, тестийг туршаад үзээрэй."}
+                </Empty.Description>
               </Empty.Header>
+              {stats?.total ? null : (
+                <Empty.Content>
+                  <SampleCardsButton />
+                </Empty.Content>
+              )}
             </Empty>
           </Card.Content>
         </Card>
