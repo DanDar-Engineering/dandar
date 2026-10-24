@@ -13,6 +13,9 @@ const IndexPage = lazy(() =>
 const ScansPage = lazy(() =>
   import("./pages/ScansPage").then((module) => ({ default: module.ScansPage })),
 );
+const StudyPage = lazy(() =>
+  import("./pages/StudyPage").then((module) => ({ default: module.StudyPage })),
+);
 const SettingsPage = lazy(() =>
   import("./pages/SettingsPage").then((module) => ({ default: module.SettingsPage })),
 );
@@ -25,6 +28,7 @@ export const Dandar = () => (
       <Routes>
         <Route index element={<IndexPage />} />
         <Route path="scans" element={<ScansPage />} />
+        <Route path="study" element={<StudyPage />} />
         <Route path="settings" element={<SettingsPage />} />
       </Routes>
     </Suspense>

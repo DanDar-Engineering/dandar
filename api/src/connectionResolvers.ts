@@ -1,14 +1,22 @@
 import type { IMainContext } from "erxes-api-shared/core-types";
 import { createGenerateModels } from "erxes-api-shared/utils";
-import type { Connection } from "mongoose";
+import type { Connection, Model } from "mongoose";
 import { type ISampleModel, loadSampleClass } from "./modules/sample/db/models/Sample.ts";
 import type { ISampleDocument } from "./modules/sample/db/definitions/sample.ts";
 import { type IScanModel, loadScanClass } from "./modules/scan/db/models/Scan.ts";
 import type { IScanDocument } from "./modules/scan/db/definitions/scan.ts";
+import {
+  type IStudyCardDocument,
+  type IStudyExamDocument,
+  studyCardSchema,
+  studyExamSchema,
+} from "./modules/study/db/definitions/study.ts";
 
 export interface IModels {
   Samples: ISampleModel;
   Scans: IScanModel;
+  StudyCards: Model<IStudyCardDocument>;
+  StudyExams: Model<IStudyExamDocument>;
 }
 
 /**
@@ -33,6 +41,8 @@ const loadClasses = (db: Connection) => {
     loadSampleClass(models),
   );
   models.Scans = db.model<IScanDocument, IScanModel>("dandar_scans", loadScanClass(models));
+  models.StudyCards = db.model<IStudyCardDocument>("dandar_study_cards", studyCardSchema);
+  models.StudyExams = db.model<IStudyExamDocument>("dandar_study_exams", studyExamSchema);
 
   return models;
 };

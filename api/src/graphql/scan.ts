@@ -96,7 +96,7 @@ const SUBJECT_MAX_LENGTH = 100;
 const SUMMARY_MAX_LENGTH = 4000;
 const TEXT_MAX_LENGTH = 20_000;
 
-const assertImage = (mimeType: string, imageData: string) => {
+export const assertImage = (mimeType: string, imageData: string) => {
   if (!IMAGE_TYPES.has(mimeType)) {
     throw badInput("Upload a JPEG, PNG or WebP image");
   }
