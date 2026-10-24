@@ -137,10 +137,10 @@ export const PureChat = () => {
                       <PureLogoIcon size="sm" />
                     </div>
                     <div className="pure-chat-bubble">
-                      <div className="dandar:flex dandar:gap-2">
-                        <div className="dandar:h-2 dandar:w-2 dandar:rounded-full dandar:bg-current dandar:animate-bounce" />
-                        <div className="dandar:h-2 dandar:w-2 dandar:rounded-full dandar:bg-current dandar:animate-bounce [animation-delay:0.2s]" />
-                        <div className="dandar:h-2 dandar:w-2 dandar:rounded-full dandar:bg-current dandar:animate-bounce [animation-delay:0.4s]" />
+                      <div className="dandar:flex dandar:gap-2 dandar:items-center">
+                        <span className="pure-loading-dot dandar:h-2.5 dandar:w-2.5 dandar:rounded-full dandar:bg-pure-primary" />
+                        <span className="pure-loading-dot dandar:h-2.5 dandar:w-2.5 dandar:rounded-full dandar:bg-pure-primary" />
+                        <span className="pure-loading-dot dandar:h-2.5 dandar:w-2.5 dandar:rounded-full dandar:bg-pure-primary" />
                       </div>
                     </div>
                   </div>
