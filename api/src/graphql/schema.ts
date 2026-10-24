@@ -2,13 +2,10 @@ import { gql } from "graphql-tag";
 import { GraphQLError } from "graphql";
 import { manifest } from "../config.ts";
 import type { Context } from "../connectionResolvers.ts";
-import {
-  AiNotConfiguredError,
-  MAX_PROMPT_LENGTH,
-  askGemma,
-  getAiStatus,
-} from "../modules/ai/gemma.ts";
+import { MAX_PROMPT_LENGTH, askGemma, getAiStatus } from "../modules/ai/gemma.ts";
 import { SAMPLE_READ, SAMPLE_WRITE } from "../permissions.ts";
+import { RECORD_ID, assertPage, requireTenantUser, toAiError } from "./guards.ts";
+import { scanResolvers, scanTypeDefs } from "./scan.ts";
 
 // Every type and operation is prefixed with the plugin name: the gateway
 // composes all plugins into one supergraph, so names must be unique across it.
@@ -53,25 +50,16 @@ export const typeDefs = gql`
     dandarSampleAdd(label: String!, customerId: String): DandarSample!
     dandarAsk(prompt: String!): DandarAnswer!
   }
+
+  ${scanTypeDefs}
 `;
 
 const LABEL_MAX_LENGTH = 200;
-// erxes record ids are short url-safe strings
-const RECORD_ID = /^[A-Za-z0-9_-]{1,64}$/;
 
 const toSampleOutput = (sample: { createdAt?: Date }) => ({
   ...sample,
   createdAt: sample.createdAt?.toISOString?.() ?? null,
 });
-
-const requireTenantUser = ({ user, subdomain }: Context) => {
-  if (!user?._id) {
-    throw new GraphQLError("Login required", { extensions: { code: "UNAUTHENTICATED" } });
-  }
-  if (!subdomain) {
-    throw new GraphQLError("Tenant required", { extensions: { code: "FORBIDDEN" } });
-  }
-};
 
 export const resolvers = {
   Query: {
@@ -89,23 +77,14 @@ export const resolvers = {
     ) => {
       requireTenantUser(context);
       await context.checkPermission(SAMPLE_READ);
-      if (
-        !Number.isInteger(limit) ||
-        limit < 1 ||
-        limit > 100 ||
-        !Number.isInteger(offset) ||
-        offset < 0 ||
-        offset > 10_000
-      ) {
-        throw new GraphQLError("Use limit 1–100 and offset 0–10000", {
-          extensions: { code: "BAD_USER_INPUT" },
-        });
-      }
+      assertPage(limit, offset);
       return (await context.models.Samples.list({ limit, offset })).map(toSampleOutput);
     },
     dandarAiStatus: () => getAiStatus(),
+    ...scanResolvers.Query,
   },
   Mutation: {
+    ...scanResolvers.Mutation,
     dandarSampleAdd: async (
       _parent: unknown,
       { label, customerId }: { label: string; customerId?: string | null },
@@ -142,13 +121,7 @@ export const resolvers = {
       try {
         return await askGemma(question);
       } catch (error) {
-        if (error instanceof AiNotConfiguredError) {
-          throw new GraphQLError(error.message, { extensions: { code: "AI_NOT_CONFIGURED" } });
-        }
-        throw new GraphQLError(
-          `Gemma request failed: ${error instanceof Error ? error.message : String(error)}`,
-          { extensions: { code: "AI_PROVIDER_ERROR" } },
-        );
+        throw toAiError(error);
       }
     },
   },

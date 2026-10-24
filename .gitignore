@@ -3,3 +3,4 @@ dist
 api/generated
 ui/src/gql
 .env
+.pnpm-store
