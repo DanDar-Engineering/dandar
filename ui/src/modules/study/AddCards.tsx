@@ -203,7 +203,12 @@ const ManualForm = ({ decks }: { decks: string[] }) => {
   );
 };
 
-type DraftRequest = { notes?: string; scanIds?: string[]; image?: PreparedImage };
+type DraftRequest = {
+  notes?: string;
+  scanIds?: string[];
+  useScanImages?: boolean;
+  image?: PreparedImage;
+};
 
 export const AddCards = ({ initialScanId }: { initialScanId?: string }) => {
   const [source, setSource] = useState(initialScanId ? "scans" : "manual");
@@ -225,6 +230,7 @@ export const AddCards = ({ initialScanId }: { initialScanId?: string }) => {
       variables: {
         notes: request.notes || null,
         scanIds: request.scanIds?.length ? request.scanIds : null,
+        useScanImages: request.useScanImages ?? false,
         mimeType: request.image?.mimeType ?? null,
         imageData: request.image?.data ?? null,
         options: {
@@ -244,6 +250,7 @@ export const AddCards = ({ initialScanId }: { initialScanId?: string }) => {
         examDate: data.examDate ?? "",
         cards: data.cards.map((card) => ({ ...card, keep: true })),
         scanIds: request.scanIds ?? [],
+        examMode: data.examMode,
       });
     }
   };
@@ -359,7 +366,10 @@ export const AddCards = ({ initialScanId }: { initialScanId?: string }) => {
       <Tabs.Content value="scans" className="dandar:flex dandar:flex-col dandar:gap-4">
         <OptionsForm options={options} onChange={setOptions} />
         {error}
-        <ScanPicker drafting={drafting} onGenerate={(scanIds) => run({ scanIds })} />
+        <ScanPicker
+          drafting={drafting}
+          onGenerate={(scanIds, useScanImages) => run({ scanIds, useScanImages })}
+        />
       </Tabs.Content>
     </Tabs>
   );

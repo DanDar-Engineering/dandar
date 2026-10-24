@@ -146,6 +146,14 @@ See `docs/erxes-integration.md`. In short:
   `text` (no second photo upload) and are accepted only for the signed-in
   student's own scans. Cards keep `scanIds`; `dandarScanCardCounts` tells
   `ScanPicker` which earlier scans already became cards.
+  `useScanImages` also sends each scan's stored photo (one Gemma call per
+  scan, `mergeDrafts` joins them; one failed call still returns the rest).
+- Exam papers (`kind: exam`) always get their own call with the practice
+  rules in `cardSystemPrompt`: new questions of the same kind with short
+  solutions, never answers to the paper's own questions (academic
+  integrity). The draft comes back with `examMode: true`, `DraftEditor`
+  asks the student to check the answers, and a date found in the material
+  pre-fills the exam schedule.
   Photos taken in the card form go through the same `prepareImage` as scans
   (JPEG ≤1600 px, `MAX_IMAGE_CHARS`) and `assertImage` from `graphql/scan.ts`.
 - Data: `dandar_study_cards` (`userId`, `topicId` = deck, `front`, `back`,

@@ -1,7 +1,7 @@
 import { useQuery } from "@apollo/client";
 import { useState } from "react";
-import { IconSparkles } from "@tabler/icons-react";
-import { Badge, Button, Card, Checkbox, Empty, Label } from "erxes-ui";
+import { IconPhoto, IconSchool, IconSparkles } from "@tabler/icons-react";
+import { Badge, Button, Card, Checkbox, Empty, Label, Switch } from "erxes-ui";
 import { SCANS_QUERY } from "../scan/graphql";
 import { ScanBadges } from "../scan/ScanBadges";
 import { SCAN_CARD_COUNTS_QUERY } from "./graphql";
@@ -17,11 +17,12 @@ export const ScanPicker = ({
   onGenerate,
 }: {
   drafting: boolean;
-  onGenerate: (scanIds: string[]) => void;
+  onGenerate: (scanIds: string[], useScanImages: boolean) => void;
 }) => {
   const [offset, setOffset] = useState(0);
   const [selected, setSelected] = useState<string[]>([]);
   const [onlyNew, setOnlyNew] = useState(false);
+  const [useImages, setUseImages] = useState(false);
   const scans = useQuery(SCANS_QUERY, { variables: { limit: PAGE_SIZE, offset } });
   const counts = useQuery(SCAN_CARD_COUNTS_QUERY);
 
@@ -58,11 +59,27 @@ export const ScanPicker = ({
             />
             Зөвхөн карт болоогүйг харуулах
           </Label>
-          <Button disabled={drafting || selected.length === 0} onClick={() => onGenerate(selected)}>
+          <Button
+            disabled={drafting || selected.length === 0}
+            onClick={() => onGenerate(selected, useImages)}
+          >
             <IconSparkles />
             {drafting ? "Gemma бодож байна…" : `Сонгосноос карт үүсгэх (${selected.length})`}
           </Button>
         </div>
+        <Label className="dandar:flex dandar:items-start dandar:gap-3 dandar:rounded-lg dandar:border dandar:border-border dandar:p-3 dandar:font-normal">
+          <Switch checked={useImages} onCheckedChange={setUseImages} className="dandar:mt-0.5" />
+          <span className="dandar:flex dandar:flex-col dandar:gap-0.5">
+            <span className="dandar:flex dandar:items-center dandar:gap-1 dandar:font-medium">
+              <IconPhoto className="dandar:size-4" />
+              Эх зургийг ашиглах
+            </span>
+            <span className="dandar:text-xs dandar:text-muted-foreground">
+              Диаграм, томьёо, хүснэгттэй материалд илүү оновчтой. Зураг бүрийг Gemma дахин үзэх тул
+              удаан.
+            </span>
+          </span>
+        </Label>
 
         {scans.loading ? (
           <p role="status">Ачаалж байна…</p>
@@ -120,11 +137,17 @@ export const ScanPicker = ({
                   </div>
                   <Button
                     size="sm"
-                    variant="outline"
+                    variant={scan.kind === "exam" ? "default" : "outline"}
                     disabled={drafting}
-                    onClick={() => onGenerate([scan._id])}
+                    onClick={() => onGenerate([scan._id], useImages)}
+                    title={
+                      scan.kind === "exam"
+                        ? "Ижил төрлийн шинэ дасгал үүсгэж, огноо байвал шалгалтын хуваарь санал болгоно"
+                        : undefined
+                    }
                   >
-                    Карт үүсгэх
+                    {scan.kind === "exam" ? <IconSchool /> : null}
+                    {scan.kind === "exam" ? "Шалгалтад бэлдэх" : "Карт үүсгэх"}
                   </Button>
                 </li>
               );

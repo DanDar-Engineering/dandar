@@ -1,6 +1,6 @@
 import { gql } from "graphql-tag";
 import type { Context } from "../connectionResolvers.ts";
-import { askGemma } from "../modules/ai/gemma.ts";
+import { type AiImage, askGemma } from "../modules/ai/gemma.ts";
 import {
   CARD_COUNT,
   CARD_KINDS,
@@ -14,7 +14,9 @@ import {
   HELP_SYSTEM_PROMPT,
   INSTRUCTIONS_MAX_LENGTH,
   NOTES_MAX_LENGTH,
+  type DraftSource,
   cardSystemPrompt,
+  mergeDrafts,
   parseDraft,
 } from "../modules/study/cardGen.ts";
 import type { IStudyCardDocument } from "../modules/study/db/definitions/study.ts";
@@ -133,6 +135,8 @@ export const studyTypeDefs = gql`
     "YYYY-MM-DD when the material states an exam date"
     examDate: String
     cards: [DandarCardDraftCard!]!
+    "True when exam material was turned into new practice questions; the student should check the answers"
+    examMode: Boolean!
   }
 
   input DandarCardOptionsInput {
@@ -198,6 +202,8 @@ export const studyTypeDefs = gql`
     dandarCardsDraft(
       notes: String
       scanIds: [String!]
+      "Send each scan's stored photo with its text (better for diagrams and formulas, slower)"
+      useScanImages: Boolean = false
       mimeType: String
       imageData: String
       options: DandarCardOptionsInput
@@ -565,6 +571,7 @@ export const studyResolvers = {
       args: {
         notes?: string | null;
         scanIds?: string[] | null;
+        useScanImages?: boolean | null;
         mimeType?: string | null;
         imageData?: string | null;
         options?: OptionsInput | null;
@@ -575,40 +582,79 @@ export const studyResolvers = {
       await context.checkPermission(STUDY_WRITE);
       const options = toCardOptions(args.options);
 
-      let notes = args.notes?.trim() ?? "";
+      const notes = args.notes?.trim() ?? "";
       if (notes.length > NOTES_MAX_LENGTH) {
         throw badInput(`Notes must be at most ${NOTES_MAX_LENGTH} characters`);
       }
-      // Saved scans already hold Gemma's transcription, so their text is
-      // reused instead of sending the photos again.
-      const scans = await ownScans(context, userId, args.scanIds);
-      notes = [notes, ...scans.map((scan) => `${scan.title}\n${scan.text}`)]
-        .filter(Boolean)
-        .join("\n\n")
-        .slice(0, NOTES_MAX_LENGTH);
-      const scanDeck = scans[0] ? scans[0].subject || scans[0].title : "";
-      let image: { mimeType: string; data: string } | undefined;
+      let upload: AiImage | undefined;
       if (args.mimeType || args.imageData) {
         assertImage(args.mimeType ?? "", args.imageData ?? "");
-        image = { mimeType: args.mimeType ?? "", data: args.imageData ?? "" };
+        upload = { mimeType: args.mimeType ?? "", data: args.imageData ?? "" };
       }
-      if (!notes && !image) throw badInput("Add notes, a photo or pick a scanned material");
+      const scans = await ownScans(context, userId, args.scanIds);
+      const scanText = (scan: (typeof scans)[number]) => `${scan.title}\n${scan.text}`;
 
-      let draft;
-      try {
-        const { text } = await askGemma(
-          notes ? `Материал:\n"""\n${notes}\n"""` : "Хавсаргасан зургаас карт гарга.",
-          cardSystemPrompt(options),
-          { image, temperature: 0.3 },
-        );
-        draft = parseDraft(text);
-      } catch (error) {
-        throw toAiError(error);
+      // askGemma takes one photo, so each scan sent with its photo is its own
+      // call. Exam papers always get their own call: they use the practice
+      // rules (new questions of the same kind, never their own answers).
+      type Call = { notes: string; image?: AiImage; source: DraftSource };
+      const calls: Call[] = [];
+      if (args.useScanImages) {
+        for (const scan of scans) {
+          calls.push({
+            notes: scanText(scan),
+            image: { mimeType: scan.mimeType, data: scan.imageData },
+            source: { mode: scan.kind === "exam" ? "exam" : "notes", withImage: true },
+          });
+        }
+        if (notes || upload)
+          calls.push({ notes, image: upload, source: { mode: "notes", withImage: false } });
+      } else {
+        const plain = [notes, ...scans.filter((scan) => scan.kind !== "exam").map(scanText)]
+          .filter(Boolean)
+          .join("\n\n");
+        if (plain || upload)
+          calls.push({ notes: plain, image: upload, source: { mode: "notes", withImage: false } });
+        const exams = scans.filter((scan) => scan.kind === "exam");
+        if (exams.length) {
+          calls.push({
+            notes: exams.map(scanText).join("\n\n"),
+            source: { mode: "exam", withImage: false },
+          });
+        }
       }
-      if (!draft.cards.length)
+      if (!calls.length) throw badInput("Add notes, a photo or pick a scanned material");
+
+      const perCall = Math.max(CARD_COUNT.min, Math.ceil(options.count / calls.length));
+      const settled = await Promise.allSettled(
+        calls.map(async (call) => {
+          const material = call.notes.slice(0, NOTES_MAX_LENGTH);
+          const { text } = await askGemma(
+            material ? `Материал:\n"""\n${material}\n"""` : "Хавсаргасан зургаас карт гарга.",
+            cardSystemPrompt({ ...options, count: perCall }, call.source),
+            { image: call.image, temperature: 0.3 },
+          );
+          return parseDraft(text);
+        }),
+      );
+      const drafts = settled.flatMap((result) =>
+        result.status === "fulfilled" ? [result.value] : [],
+      );
+      // One failed call (say, a slow photo) still returns the other cards.
+      const failure = settled.find((result) => result.status === "rejected");
+      if (!drafts.length && failure?.status === "rejected") throw toAiError(failure.reason);
+
+      const draft = mergeDrafts(drafts, MAX_SAVED_CARDS);
+      if (!draft.cards.length) {
         throw badInput("Gemma could not make cards from this material. Try again.");
+      }
+      const scanDeck = scans[0] ? scans[0].subject || scans[0].title : "";
 
-      return { ...draft, deck: draft.deck || scanDeck.slice(0, DECK_MAX_LENGTH) };
+      return {
+        ...draft,
+        deck: draft.deck || scanDeck.slice(0, DECK_MAX_LENGTH),
+        examMode: calls.some((call) => call.source.mode === "exam"),
+      };
     },
     dandarCardsSave: async (
       _parent: unknown,

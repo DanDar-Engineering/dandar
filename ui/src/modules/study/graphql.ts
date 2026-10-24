@@ -96,6 +96,7 @@ export const CARDS_DRAFT_MUTATION = gql(`
   mutation dandarCardsDraft(
     $notes: String
     $scanIds: [String!]
+    $useScanImages: Boolean
     $mimeType: String
     $imageData: String
     $options: DandarCardOptionsInput
@@ -103,12 +104,14 @@ export const CARDS_DRAFT_MUTATION = gql(`
     dandarCardsDraft(
       notes: $notes
       scanIds: $scanIds
+      useScanImages: $useScanImages
       mimeType: $mimeType
       imageData: $imageData
       options: $options
     ) {
       deck
       examDate
+      examMode
       cards {
         front
         back
