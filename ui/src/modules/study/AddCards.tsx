@@ -3,6 +3,7 @@ import { type ChangeEvent, useEffect, useRef, useState } from "react";
 import { IconPhoto, IconSparkles } from "@tabler/icons-react";
 import { Button, Card, Input, Label, Tabs, Textarea, toast } from "erxes-ui";
 import type { DandarCardKind, DandarCardLang, DandarCardLevel } from "~/gql/graphql";
+import { CameraButton } from "../scan/CameraButton";
 import { ACCEPTED_IMAGE_TYPES, type PreparedImage, prepareImage } from "../scan/image";
 import { type Draft, DraftEditor } from "./DraftEditor";
 import { SampleCardsButton } from "./SampleCardsButton";
@@ -271,10 +272,13 @@ export const AddCards = ({ initialScanId }: { initialScanId?: string }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialScanId]);
 
-  const onFile = async (event: ChangeEvent<HTMLInputElement>) => {
+  const onFile = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
+    if (file) void usePhoto(file);
+  };
+
+  const usePhoto = async (file: File) => {
     setImageError("");
-    if (!file) return;
     try {
       setImage(await prepareImage(file));
     } catch (error) {
@@ -342,6 +346,7 @@ export const AddCards = ({ initialScanId }: { initialScanId?: string }) => {
               accept={ACCEPTED_IMAGE_TYPES}
               onChange={onFile}
             />
+            <CameraButton className="dandar:w-fit" onCapture={usePhoto} onError={setImageError} />
             {image ? (
               <img
                 src={image.previewUrl}
