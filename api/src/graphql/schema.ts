@@ -1,3 +1,4 @@
+import { plannerTypeDefs, plannerQueries, plannerMutations } from "../modules/planner/resolvers.ts";
 import { gql } from "graphql-tag";
 import { GraphQLError } from "graphql";
 import { manifest } from "../config.ts";
@@ -13,6 +14,8 @@ import { SAMPLE_READ, SAMPLE_WRITE } from "../permissions.ts";
 // Every type and operation is prefixed with the plugin name: the gateway
 // composes all plugins into one supergraph, so names must be unique across it.
 export const typeDefs = gql`
+  ${plannerTypeDefs}
+
   extend schema @link(url: "https://specs.apollo.dev/federation/v2.9", import: ["@key"])
 
   type DandarStatus {
@@ -75,6 +78,7 @@ const requireTenantUser = ({ user, subdomain }: Context) => {
 
 export const resolvers = {
   Query: {
+    ...plannerQueries,
     dandarStatus: (_parent: unknown, _args: unknown, { subdomain, user }: Context) => ({
       plugin: manifest.name,
       version: manifest.version,
@@ -106,6 +110,7 @@ export const resolvers = {
     dandarAiStatus: () => getAiStatus(),
   },
   Mutation: {
+    ...plannerMutations,
     dandarSampleAdd: async (
       _parent: unknown,
       { label, customerId }: { label: string; customerId?: string | null },

@@ -1,3 +1,4 @@
+import { plannerSchema, type PlannerModel, type PlannerState } from "./modules/planner/model.ts";
 import type { IMainContext } from "erxes-api-shared/core-types";
 import { createGenerateModels } from "erxes-api-shared/utils";
 import type { Connection } from "mongoose";
@@ -6,6 +7,7 @@ import type { ISampleDocument } from "./modules/sample/db/definitions/sample.ts"
 
 export interface IModels {
   Samples: ISampleModel;
+  Planner: PlannerModel;
 }
 
 /**
@@ -24,6 +26,8 @@ export type Context = Omit<IMainContext, "models"> & {
 // SaaS), so resolvers never touch another tenant's collections.
 const loadClasses = (db: Connection) => {
   const models = {} as IModels;
+
+  models.Planner = db.model<PlannerState, PlannerModel>("dandar_planner", plannerSchema);
 
   models.Samples = db.model<ISampleDocument, ISampleModel>(
     "dandar_samples",

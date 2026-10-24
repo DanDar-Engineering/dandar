@@ -9,6 +9,25 @@ export const permissions: IPermissionConfig = {
   plugin: manifest.name,
   modules: [
     {
+      name: "dandarPlanner",
+      description: "Personal planner and reminders",
+      scopeField: null,
+      ownerFields: [],
+      scopes: [{ name: "all", description: "Own planner only (enforced by API)" }],
+      actions: [
+        {
+          name: "dandarPlannerRead",
+          title: "Read own planner",
+          description: "Read personal tasks and study sessions",
+        },
+        {
+          name: "dandarPlannerWrite",
+          title: "Update own planner",
+          description: "Plan sessions and manage reminders",
+        },
+      ],
+    },
+    {
       name: "dandarSamples",
       description: `${manifest.title} sample records`,
       scopeField: null,
