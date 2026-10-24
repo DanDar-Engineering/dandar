@@ -93,6 +93,9 @@ export function review(
  */
 export function capToExam(card: CardState, examAt: number): CardState {
   const lastBeforeExam = examAt - DAY_MS;
+  // Already reviewed on the last day: keep its normal interval, otherwise it
+  // would come due again at once and loop for the rest of the day.
+  if ((card.lastReviewedAt ?? 0) >= lastBeforeExam) return card;
   return card.dueAt > lastBeforeExam
     ? { ...card, dueAt: Math.max(lastBeforeExam, card.lastReviewedAt ?? 0) }
     : card;
